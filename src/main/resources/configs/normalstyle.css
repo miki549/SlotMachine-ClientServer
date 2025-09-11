@@ -1,0 +1,287 @@
+/* Root pane styling */
+#root-pane {
+    -fx-background-image: url("../backgrounds/background.jpg");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+}
+@font-face {
+    font-family: "khamenet";
+    src: url("fonts/Egyptaxt.ttf");
+}
+/* Balance and Bet text styling */
+.balance-text, .bet-text {
+    -fx-fill: gold;
+    -fx-font-family: "Serif";
+    -fx-font-weight: bold;
+}
+
+/* Spin button styling */
+.spin-button {
+    -fx-font-family: "khamenet";
+    -fx-background-color: darkgoldenrod; /* Background color */
+    -fx-text-fill: #fcf3a7; /* Text color */
+    -fx-font-weight: bold; /* Font weight */
+    -fx-border-color: #8b6604; /* Border color */
+    -fx-border-width: 4px; /* Border width */
+    -fx-background-radius: 13; /* Background corner radius */
+    -fx-border-radius: 10; /* Border corner radius */
+}
+.spin-button:hover {
+    -fx-background-color: goldenrod; /* Hover background color */
+}
+.spin-button:pressed {
+    -fx-background-color: saddlebrown; /* Pressed background color */
+}
+
+/* Bet button styling */
+.bet-button {
+    -fx-background-color: darkgoldenrod; /* Background color */
+    -fx-border-color: #8b6604; /* Border color */
+    -fx-border-width: 4px; /* Border width */
+    -fx-background-radius: 50%; /* Background corner radius */
+    -fx-border-radius: 50%; /* Border corner radius */
+}
+
+/* Bet button hover state */
+.bet-button:hover {
+    -fx-background-color: goldenrod; /* Hover background color */
+}
+
+/* Bet button pressed state */
+.bet-button:pressed {
+    -fx-background-color: saddlebrown; /* Pressed background color */
+}
+
+/* Bonus button styling */
+.bonus-button {
+    -fx-font-family: "khamenet";
+    -fx-background-color: darkgoldenrod; /* Background color */
+    -fx-text-fill: #fcf3a7; /* Text color */
+    -fx-alignment: center;
+    -fx-font-weight: bold; /* Font weight */
+    -fx-border-color: #8b6604; /* Border color */
+    -fx-border-width: 4px; /* Border width */
+}
+
+/* Bonus button hover state */
+.bonus-button:hover {
+    -fx-background-color: #daa520; /* Hover background color */
+}
+
+/* Bonus button pressed state */
+.bonus-button:pressed {
+    -fx-background-color: saddlebrown; /* Pressed background color */
+}
+
+/* Settings button styling */
+.settings-button {
+    -fx-font-family: "khamenet";
+    -fx-background-color: darkgoldenrod; /* Background color */
+    -fx-text-fill: #fcf3a7; /* Text color */
+    -fx-font-weight: bold; /* Font weight */
+    -fx-border-color: #8b6604; /* Border color */
+    -fx-border-width: 4px; /* Border width */
+    -fx-background-radius: 13; /* Background corner radius */
+    -fx-border-radius: 10; /* Border corner radius */
+}
+
+.settings-button:hover {
+    -fx-background-color: goldenrod; /* Hover background color */
+}
+
+.settings-button:pressed {
+    -fx-background-color: saddlebrown; /* Pressed background color */
+}
+
+.volume-button {
+    -fx-font-family: "khamenet";
+    -fx-background-image: url("../buttons/volume/volume-default.png");
+    -fx-background-size: contain;
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+    -fx-border-color: transparent;
+    -fx-background-color: transparent;
+}
+/* Hover állapot */
+.volume-button:hover {
+    -fx-background-image: url("../buttons/volume/volume-hover.png");
+}
+
+/* Pressed állapot */
+.volume-button:pressed {
+    -fx-background-image: url("../buttons/volume/volume-pressed.png");
+}
+
+/* Dialog label styling */
+.dialog-label {
+    -fx-text-fill: #ffd700;
+}
+
+/* Dialog checkbox styling */
+.dialog-checkbox {
+    -fx-background-color: transparent; /* Nincs háttér */
+    -fx-text-fill: #ffd700; /* Arany szöveg */
+    -fx-font-weight: bold;
+    -fx-padding: 5px;
+}
+
+/* A négyzet stílusa */
+.dialog-checkbox .box {
+    -fx-background-color: #2b2111; /* Mély barna háttér */
+    -fx-border-color: #cfa349; /* Arany szegély */
+    -fx-border-width: 2px;
+    -fx-border-radius: 6px; /* Lekerekített checkbox */
+    -fx-background-radius: 6px;
+    -fx-padding: 2px;
+}
+
+/* Ha az egér fölé megy */
+.dialog-checkbox:hover .box {
+    -fx-background-color: #3a2d16;
+    -fx-border-color: #e6c47b;
+}
+
+/* Ha be van pipálva */
+.dialog-checkbox:selected .box {
+    -fx-background-color: goldenrod;
+    -fx-border-color: #ffd700;
+    -fx-background-radius: 6px;
+}
+
+/* Pipa stílusa */
+.dialog-checkbox:selected .mark {
+    -fx-background-color: black; /* Fekete pipa, hogy jobban látszódjon */
+}
+
+/* Dialog slider styling */
+.dialog-slider {
+}
+
+.dialog-slider .track {
+    -fx-background-color: #8b6604; /* Csúszka sávjának színe */
+    -fx-border-color: #fcf3a7; /* Csúszka sávjának kerete */
+    -fx-border-radius: 10px;
+    -fx-background-radius: 10px;
+}
+
+.dialog-slider .thumb {
+    -fx-background-color: goldenrod; /* Fogantyú színe */
+    -fx-background-radius: 15px;
+    -fx-effect: dropshadow(gaussian, #ffd700, 10, 0.5, 0, 0);
+}
+
+.dialog-slider .axis {
+    -fx-tick-label-fill: #ffd700; /* Az értékek színe */
+}
+
+
+/* Dialog save button styling */
+.dialog-save-button {
+    -fx-background-color: goldenrod;
+    -fx-text-fill: #333;
+    -fx-font-weight: bold;
+}
+.dialog-save-button:hover {
+    -fx-background-color: #8b6604;
+}
+.dialog-save-button:pressed {
+    -fx-background-color: saddlebrown;
+}
+
+/* Dialog close button styling */
+.dialog-close-button {
+    -fx-background-image: url("../buttons/close/close-default.png");
+    -fx-background-size: contain;
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+    -fx-border-color: transparent;
+    -fx-background-color: transparent;
+}
+.dialog-close-button:hover {
+    -fx-background-image: url("../buttons/close/close-hover.png");
+}
+.dialog-close-button:pressed {
+    -fx-background-image: url("../buttons/close/close-pressed.png");
+}
+
+/* Dialog VBox styling */
+.dialog-vbox {
+    -fx-background-color: #333;
+    -fx-border-color: #ffd700;
+    -fx-border-width: 2px;
+    -fx-background-radius: 20px;
+    -fx-border-radius: 20px;
+}
+
+.win-text {
+    -fx-fill: gold;
+    -fx-font-family: "Serif";
+    -fx-font-weight: bold;
+}
+/* Combo box */
+.combo-box {
+    -fx-background-color: #222; /* Sötétszürke háttér a modernebb megjelenésért */
+    -fx-border-color: #ffd700; /* arany szegély */
+    -fx-border-width: 2px;
+    -fx-border-radius: 12px;
+    -fx-background-radius: 12px;
+    -fx-text-fill: #ffd700; /* Arany szöveg */
+    -fx-font-weight: bold;
+}
+
+/* Hover állapot - kissé világosabb, hogy kiemelkedjen */
+.combo-box:hover {
+    -fx-border-color: #e6c47b;
+}
+
+/* Aktív állapot (amikor ki van választva) */
+.combo-box:focused {
+    /*-fx-background-color: #cfa349;*/
+    -fx-border-color: #ffd700;
+    -fx-text-fill: black;
+    -fx-background-radius: 12px;
+}
+
+/* Nyíl gomb stílusa */
+.combo-box .arrow-button {
+    -fx-background-color: goldenrod;
+    -fx-border-color: transparent;
+    -fx-background-radius: 8px;
+}
+
+.combo-box .arrow-button:hover {
+    -fx-background-color: #8b6604; /* Aranyosabb hover hatás */
+    -fx-background-radius: 8px;
+}
+
+/* A lenyíló lista háttere és szövegszíne */
+.combo-box .list-view {
+    -fx-background-color: #2b2111; /* Mélyebb barna árnyalat */
+    -fx-border-color: #cfa349;
+    -fx-border-radius: 10px;
+    -fx-background-radius: 10px;
+}
+
+/* Listaelemek (opciók) stílusa */
+.combo-box .list-cell {
+    -fx-background-color: #2b2111;
+    -fx-text-fill: #ffd700;
+    -fx-padding: 5px;
+    -fx-background-radius: 8px;
+}
+
+/* Hover állapot a listaelemekre */
+.combo-box .list-cell:hover {
+    -fx-background-color: #8b6604;
+    -fx-text-fill: black;
+    -fx-background-radius: 8px;
+}
+
+/* Kiválasztott elem stílusa */
+.combo-box .list-cell:selected {
+    -fx-background-color: goldenrod;
+    -fx-text-fill: black;
+    -fx-background-radius: 8px;
+}
+
+

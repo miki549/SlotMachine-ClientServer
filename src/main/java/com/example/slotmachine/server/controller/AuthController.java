@@ -22,6 +22,11 @@ public class AuthController {
     @Autowired
     private JwtUtil jwtUtil;
 
+    @GetMapping("/health")
+    public ResponseEntity<?> health() {
+        return ResponseEntity.ok("Server is running");
+    }
+
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
         try {
@@ -44,8 +49,8 @@ public class AuthController {
             // Update last login
             userService.updateLastLogin(user);
 
-            // Generate JWT token
-            String token = jwtUtil.generateToken(user.getUsername());
+            // Generate JWT token with user ID
+            String token = jwtUtil.generateTokenWithUserId(user.getId(), user.getUsername());
 
             LoginResponse response = new LoginResponse(token, user.getUsername(), user.getBalance());
             return ResponseEntity.ok(response);

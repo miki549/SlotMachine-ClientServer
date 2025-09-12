@@ -30,17 +30,16 @@ public class GameController {
     @GetMapping("/balance")
     public ResponseEntity<?> getBalance(@RequestHeader("Authorization") String authHeader) {
         try {
-            String username = getUsernameFromToken(authHeader);
-            if (username == null) {
-                return ResponseEntity.badRequest().body("Invalid token");
+            User user = getUserFromToken(authHeader);
+            if (user == null) {
+                return ResponseEntity.badRequest().body("Invalid token or user not found");
             }
-
-            Optional<User> userOpt = userService.findByUsername(username);
-            if (userOpt.isEmpty()) {
-                return ResponseEntity.badRequest().body("User not found");
+            
+            // Check if user is still active
+            if (!user.getActive()) {
+                return ResponseEntity.status(403).body("USER_BANNED");
             }
-
-            User user = userOpt.get();
+            
             return ResponseEntity.ok(new BalanceResponse(user.getBalance(), user.getUsername()));
 
         } catch (Exception e) {
@@ -52,9 +51,14 @@ public class GameController {
     public ResponseEntity<?> processSpin(@RequestHeader("Authorization") String authHeader, 
                                        @RequestBody SpinRequest spinRequest) {
         try {
-            String username = getUsernameFromToken(authHeader);
-            if (username == null) {
-                return ResponseEntity.badRequest().body("Invalid token");
+            User user = getUserFromToken(authHeader);
+            if (user == null) {
+                return ResponseEntity.badRequest().body("Invalid token or user not found");
+            }
+            
+            // Check if user is still active
+            if (!user.getActive()) {
+                return ResponseEntity.status(403).body("USER_BANNED");
             }
 
             // Validate spin request
@@ -72,7 +76,7 @@ public class GameController {
             }
 
             boolean success = gameService.processSpin(
-                username, 
+                user.getUsername(), 
                 spinRequest.getBetAmount(), 
                 spinRequest.getSymbols(), 
                 spinRequest.getPayout()
@@ -82,20 +86,57 @@ public class GameController {
                 return ResponseEntity.ok(SpinResponse.error("Insufficient balance"));
             }
 
-            // Get updated balance
-            Optional<User> userOpt = userService.findByUsername(username);
+            // Get updated balance - refresh user from DB
+            Optional<User> userOpt = userService.findById(user.getId());
             if (userOpt.isEmpty()) {
                 return ResponseEntity.badRequest().body("User not found");
             }
 
-            User user = userOpt.get();
-            return ResponseEntity.ok(SpinResponse.success(user.getBalance(), spinRequest.getPayout()));
+            User updatedUser = userOpt.get();
+            return ResponseEntity.ok(SpinResponse.success(updatedUser.getBalance(), spinRequest.getPayout()));
 
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body("Spin processing failed: " + e.getMessage());
         }
     }
 
+    private User getUserFromToken(String authHeader) {
+        try {
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return null;
+            }
+
+            String token = authHeader.substring(7);
+            
+            if (!jwtUtil.validateToken(token) || jwtUtil.isTokenExpired(token)) {
+                return null;
+            }
+
+            // Try to get user by ID first (for renamed users)
+            Long userId = jwtUtil.getUserIdFromToken(token);
+            if (userId != null) {
+                Optional<User> userOpt = userService.findById(userId);
+                if (userOpt.isPresent()) {
+                    return userOpt.get();
+                }
+            }
+            
+            // Fallback to username (for backward compatibility)
+            String username = jwtUtil.getUsernameFromToken(token);
+            if (username != null) {
+                Optional<User> userOpt = userService.findByUsername(username);
+                if (userOpt.isPresent()) {
+                    return userOpt.get();
+                }
+            }
+            
+            return null;
+
+        } catch (Exception e) {
+            return null;
+        }
+    }
+    
     private String getUsernameFromToken(String authHeader) {
         try {
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {

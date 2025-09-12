@@ -408,13 +408,7 @@ public class MainMenu extends Application {
     }
 
     private void transitionToGame(Stage primaryStage) {
-        Timeline fadeOut = new Timeline(new KeyFrame(
-                Duration.seconds(1),
-                new KeyValue(mainMenuMusic.volumeProperty(), 0)
-        ));
-        fadeOut.setOnFinished(_ -> mainMenuMusic.stop());
-        fadeOut.play();
-
+        // Don't stop the music here - let SlotMachineGUI handle it after successful login
         try {
             SlotMachineGUI slotMachineGUI = new SlotMachineGUI();
             slotMachineGUI.setInitialVolume(volume);
@@ -424,6 +418,21 @@ public class MainMenu extends Application {
             e.printStackTrace();
         }
     }
+    // Static method to stop main menu music from other classes
+    public static void stopMainMenuMusic() {
+        if (mainMenuMusic != null) {
+            Timeline fadeOut = new Timeline(new KeyFrame(
+                    Duration.seconds(1),
+                    new KeyValue(mainMenuMusic.volumeProperty(), 0)
+            ));
+            fadeOut.setOnFinished(_ -> {
+                mainMenuMusic.stop();
+                mainMenuMusic = null;
+            });
+            fadeOut.play();
+        }
+    }
+
     @Override
     public void stop() {
         if (backgroundVideo != null) {

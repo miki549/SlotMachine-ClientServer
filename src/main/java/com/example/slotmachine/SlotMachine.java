@@ -20,6 +20,8 @@ public class SlotMachine {
     private final ApiClient apiClient;
     private boolean isOnline = false;
     private BalanceUpdateListener balanceUpdateListener;
+    private UserBannedListener userBannedListener;
+    private UserUnbannedListener userUnbannedListener;
 
     // Szimbólum valószínűségek és szorzók
     private final double[] symbolProbabilities = {12,12,12,14,14,16,15,4,1};  // Összesen 100%
@@ -180,7 +182,14 @@ public class SlotMachine {
                 return false;
             }
         } catch (Exception e) {
-            System.err.println("Failed to process spin on server: " + e.getMessage());
+            // Check if it's a user banned exception
+            if (e.getMessage() != null && e.getMessage().contains("Felhasználó tiltva lett")) {
+                if (userBannedListener != null) {
+                    userBannedListener.onUserBanned();
+                }
+            } else {
+                System.err.println("Failed to process spin on server: " + e.getMessage());
+            }
             return false;
         }
     }
@@ -526,10 +535,42 @@ private int generateNonScatterSymbol() {
                     balanceUpdateListener.onBalanceUpdated(this.balance);
                 }
                 
+                // If we successfully got balance, user is not banned anymore
+                if (userUnbannedListener != null) {
+                    userUnbannedListener.onUserUnbanned();
+                }
+                
                 System.out.println("Balance updated from server: $" + this.balance);
             } catch (Exception e) {
-                System.err.println("Failed to update balance from server: " + e.getMessage());
+                // Check if it's a user banned exception
+                if (e.getMessage() != null && e.getMessage().contains("Felhasználó tiltva lett")) {
+                    if (userBannedListener != null) {
+                        userBannedListener.onUserBanned();
+                    }
+                } else {
+                    System.err.println("Failed to update balance from server: " + e.getMessage());
+                }
             }
         }
+    }
+
+    // Setter for user banned listener
+    public void setUserBannedListener(UserBannedListener listener) {
+        this.userBannedListener = listener;
+    }
+    
+    // Setter for user unbanned listener
+    public void setUserUnbannedListener(UserUnbannedListener listener) {
+        this.userUnbannedListener = listener;
+    }
+
+    // Interface for user banned notifications
+    public interface UserBannedListener {
+        void onUserBanned();
+    }
+    
+    // Interface for user unbanned notifications
+    public interface UserUnbannedListener {
+        void onUserUnbanned();
     }
 }

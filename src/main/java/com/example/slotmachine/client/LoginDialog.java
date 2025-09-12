@@ -45,15 +45,15 @@ public class LoginDialog {
 
         Button loginButton = new Button("Bejelentkezés");
         loginButton.setPrefWidth(120);
-        loginButton.setStyle("-fx-font-size: 14px; -fx-background-color: #4CAF50; -fx-text-fill: white;");
+        loginButton.getStyleClass().add("login-button");
 
         Button registerButton = new Button("Regisztráció");
         registerButton.setPrefWidth(120);
-        registerButton.setStyle("-fx-font-size: 14px; -fx-background-color: #2196F3; -fx-text-fill: white;");
+        registerButton.getStyleClass().add("register-button");
 
         Button cancelButton = new Button("Mégse");
         cancelButton.setPrefWidth(120);
-        cancelButton.setStyle("-fx-font-size: 14px; -fx-background-color: #f44336; -fx-text-fill: white;");
+        cancelButton.getStyleClass().add("cancel-button");
 
         Label statusLabel = new Label();
         statusLabel.setStyle("-fx-text-fill: red; -fx-font-size: 12px;");
@@ -150,6 +150,7 @@ public class LoginDialog {
 
         Scene scene = new Scene(layout, 350, 400);
         scene.setFill(Color.TRANSPARENT);
+        scene.getStylesheets().add("file:src/main/resources/configs/normalstyle.css");
 
         loginStage.setScene(scene);
         loginStage.setResizable(false);

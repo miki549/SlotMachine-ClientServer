@@ -338,11 +338,11 @@ public class ConsoleAdminApp {
                 System.out.println("=== " + username.toUpperCase() + " TRANZAKCIÓI ===");
                 String responseBody = response.body();
                 
-                if (responseBody.contains("[]")) {
+                if (responseBody.contains("[]") || responseBody.trim().equals("[]")) {
                     System.out.println("Nincsenek tranzakciók.");
                 } else {
-                    System.out.println("Tranzakciók: " + responseBody);
-                    // Itt lehetne szebben formázni a JSON-t
+                    // Parse and display transactions in a readable format
+                    parseAndDisplayTransactions(responseBody);
                 }
             } else {
                 System.out.println("❌ Hiba: " + response.body());
@@ -351,6 +351,123 @@ public class ConsoleAdminApp {
         } catch (Exception e) {
             System.out.println("❌ Hálózati hiba: " + e.getMessage());
         }
+    }
+
+    private static void parseAndDisplayTransactions(String jsonResponse) {
+        try {
+            // Simple JSON parsing for transaction display
+            // Remove brackets and split by transaction objects
+            String cleanJson = jsonResponse.trim();
+            if (cleanJson.startsWith("[")) {
+                cleanJson = cleanJson.substring(1);
+            }
+            if (cleanJson.endsWith("]")) {
+                cleanJson = cleanJson.substring(0, cleanJson.length() - 1);
+            }
+            
+            if (cleanJson.trim().isEmpty()) {
+                System.out.println("Nincsenek tranzakciók.");
+                return;
+            }
+            
+            // Split by transaction objects (simple approach)
+            String[] transactions = cleanJson.split("\\},\\{");
+            
+            System.out.printf("%-5s %-12s %-8s %-12s %-12s %-20s %-20s%n", 
+                "ID", "TÍPUS", "ÖSSZEG", "ELŐTTE", "UTÁNA", "DÁTUM", "LEÍRÁS");
+            System.out.println("─".repeat(90));
+            
+            for (int i = 0; i < transactions.length; i++) {
+                String transaction = transactions[i];
+                
+                // Clean up the transaction string
+                if (i == 0 && transaction.startsWith("{")) {
+                    transaction = transaction.substring(1);
+                }
+                if (i == transactions.length - 1 && transaction.endsWith("}")) {
+                    transaction = transaction.substring(0, transaction.length() - 1);
+                }
+                if (!transaction.startsWith("{")) {
+                    transaction = "{" + transaction;
+                }
+                if (!transaction.endsWith("}")) {
+                    transaction = transaction + "}";
+                }
+                
+                // Extract basic fields using simple string parsing
+                String id = extractJsonValue(transaction, "id");
+                String type = extractJsonValue(transaction, "type");
+                String amount = extractJsonValue(transaction, "amount");
+                String balanceBefore = extractJsonValue(transaction, "balanceBefore");
+                String balanceAfter = extractJsonValue(transaction, "balanceAfter");
+                String createdAt = extractJsonValue(transaction, "createdAt");
+                String description = extractJsonValue(transaction, "description");
+                
+                // Format and display
+                System.out.printf("%-5s %-12s %-8s %-12s %-12s %-20s %-20s%n",
+                    id.length() > 5 ? id.substring(0, 5) : id,
+                    type,
+                    formatAmount(amount),
+                    formatAmount(balanceBefore),
+                    formatAmount(balanceAfter),
+                    formatDate(createdAt),
+                    description.length() > 20 ? description.substring(0, 17) + "..." : description
+                );
+            }
+            
+        } catch (Exception e) {
+            System.out.println("Hiba a tranzakciók feldolgozásakor: " + e.getMessage());
+            System.out.println("Nyers adat: " + jsonResponse);
+        }
+    }
+    
+    private static String extractJsonValue(String json, String key) {
+        try {
+            String searchKey = "\"" + key + "\":";
+            int startIndex = json.indexOf(searchKey);
+            if (startIndex == -1) return "";
+            
+            startIndex += searchKey.length();
+            
+            // Skip whitespace
+            while (startIndex < json.length() && Character.isWhitespace(json.charAt(startIndex))) {
+                startIndex++;
+            }
+            
+            int endIndex;
+            if (json.charAt(startIndex) == '"') {
+                // String value
+                startIndex++; // Skip opening quote
+                endIndex = json.indexOf('"', startIndex);
+                return json.substring(startIndex, endIndex);
+            } else {
+                // Number or boolean value
+                endIndex = json.indexOf(',', startIndex);
+                if (endIndex == -1) {
+                    endIndex = json.indexOf('}', startIndex);
+                }
+                return json.substring(startIndex, endIndex).trim();
+            }
+        } catch (Exception e) {
+            return "";
+        }
+    }
+    
+    private static String formatAmount(String amount) {
+        try {
+            double value = Double.parseDouble(amount);
+            return String.format("$%.0f", value);
+        } catch (Exception e) {
+            return amount;
+        }
+    }
+    
+    private static String formatDate(String dateStr) {
+        // Simple date formatting - just take the first part
+        if (dateStr.contains("T")) {
+            return dateStr.split("T")[0];
+        }
+        return dateStr.length() > 20 ? dateStr.substring(0, 20) : dateStr;
     }
 
 }

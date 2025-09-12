@@ -16,13 +16,31 @@ import java.util.prefs.Preferences;
 public class ServerConfigDialog {
     private static final String SERVER_URL_KEY = "server_url";
     private static final String DEFAULT_SERVER_URL = "http://46.139.211.149:8080";
+    private static final String LOCALHOST_URL = "http://localhost:8080";
     
     private final Preferences prefs;
     private String serverUrl;
     
     public ServerConfigDialog() {
         prefs = Preferences.userNodeForPackage(ServerConfigDialog.class);
-        serverUrl = prefs.get(SERVER_URL_KEY, DEFAULT_SERVER_URL);
+        serverUrl = prefs.get(SERVER_URL_KEY, getPreferredDefaultUrl());
+    }
+    
+    private String getPreferredDefaultUrl() {
+        // Check if localhost server is available
+        if (isLocalServerAvailable()) {
+            return LOCALHOST_URL;
+        }
+        return DEFAULT_SERVER_URL;
+    }
+    
+    private boolean isLocalServerAvailable() {
+        try {
+            ApiClient testClient = new ApiClient(LOCALHOST_URL);
+            return testClient.isConnected();
+        } catch (Exception e) {
+            return false;
+        }
     }
     
     public String showAndWait(Stage owner) {
@@ -43,7 +61,7 @@ public class ServerConfigDialog {
         TextField serverField = new TextField(serverUrl);
         serverField.setPrefWidth(300);
         
-        Label exampleLabel = new Label("Példa: http://46.139.211.149:8080 (jelenlegi), http://192.168.1.100:8080 (helyi hálózat)");
+        Label exampleLabel = new Label("Példa: http://localhost:8080 (helyi szerver), http://46.139.211.149:8080 (külső szerver), http://192.168.1.100:8080 (helyi hálózat)");
         exampleLabel.setStyle("-fx-font-size: 10px; -fx-text-fill: gray;");
         
         Button testButton = new Button("Kapcsolat Tesztelése");
@@ -64,7 +82,7 @@ public class ServerConfigDialog {
         buttonBox.getChildren().addAll(okButton, cancelButton);
         grid.add(buttonBox, 1, 4);
         
-        testButton.setOnAction(e -> {
+        testButton.setOnAction(_ -> {
             String testUrl = serverField.getText().trim();
             if (testUrl.isEmpty()) {
                 statusLabel.setText("❌ Kérem adja meg a szerver címét!");
@@ -101,7 +119,7 @@ public class ServerConfigDialog {
             testThread.start();
         });
         
-        okButton.setOnAction(e -> {
+        okButton.setOnAction(_ -> {
             String newUrl = serverField.getText().trim();
             if (!newUrl.isEmpty()) {
                 // Ensure URL has protocol
@@ -117,13 +135,13 @@ public class ServerConfigDialog {
             }
         });
         
-        cancelButton.setOnAction(e -> {
+        cancelButton.setOnAction(_ -> {
             serverUrl = null;
             dialog.close();
         });
         
         // Enter key support
-        serverField.setOnAction(e -> okButton.fire());
+        serverField.setOnAction(_ -> okButton.fire());
         
         Scene scene = new Scene(grid);
         dialog.setScene(scene);
@@ -133,7 +151,7 @@ public class ServerConfigDialog {
     }
     
     public String getServerUrl() {
-        return prefs.get(SERVER_URL_KEY, DEFAULT_SERVER_URL);
+        return prefs.get(SERVER_URL_KEY, getPreferredDefaultUrl());
     }
     
     public void saveServerUrl(String url) {

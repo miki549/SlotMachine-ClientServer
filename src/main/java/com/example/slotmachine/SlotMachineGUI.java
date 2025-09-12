@@ -4,6 +4,7 @@ import com.example.slotmachine.client.ApiClient;
 import com.example.slotmachine.client.ServerConfigDialog;
 import com.example.slotmachine.client.LoginDialog;
 import com.example.slotmachine.server.dto.LoginResponse;
+import com.example.slotmachine.server.dto.BalanceResponse;
 import javafx.animation.*;
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -70,6 +71,7 @@ public class SlotMachineGUI extends Application {
     private final Button volumeButton = new Button();
     private Text balanceText = new Text("Credit: $0");
     private final Text winText = new Text("");
+    private Text usernameText = new Text("");
     private final Random random = new Random();
 
     private MediaPlayer gameMusic;
@@ -80,12 +82,13 @@ public class SlotMachineGUI extends Application {
     private SpinParameters spinParams;
     // CreditLoader már nem szükséges online módban
     // private final CreditLoader creditLoader = new CreditLoader(game);
-    private Stage autoSpinSettingsStage, volumeSettingsStage, lowBalanceStage;
+    private Stage autoSpinSettingsStage, volumeSettingsStage, lowBalanceStage, userBannedStage;
     private MediaPlayer bonusBackgroundMusic;
     private MediaPlayer bonusTriggerSound;
     private MediaPlayer retriggerSound;
     private Stage bonusResultsStage;
     private boolean isBonusMode = false;
+    private boolean isUserBanned = false;
     private Timeline balancePollingTimer;
 
     private static class SpinParameters {
@@ -131,11 +134,37 @@ public class SlotMachineGUI extends Application {
         // Balance szöveg frissítése
         balanceText.setText("Credit: $" + loginResponse.getBalance().intValue());
         
+        // Username text beállítása
+        usernameText.setText(loginResponse.getUsername());
+        
         // Balance update listener beállítása
         game.setBalanceUpdateListener(newBalance -> {
             Platform.runLater(() -> {
                 balanceText.setText("Credit: $" + (int)newBalance);
                 System.out.println("Balance real-time frissítés: $" + newBalance);
+            });
+        });
+        
+        // User banned listener beállítása
+        game.setUserBannedListener(() -> {
+            Platform.runLater(() -> {
+                if (!isUserBanned) {
+                    isUserBanned = true;
+                    // Stop auto spinning if active
+                    autoSpinCount = 0;
+                    designAutoSpinButton();
+                    showUserBannedDialog(primaryStage);
+                }
+            });
+        });
+        
+        // User unbanned listener beállítása
+        game.setUserUnbannedListener(() -> {
+            Platform.runLater(() -> {
+                if (isUserBanned) {
+                    isUserBanned = false;
+                    System.out.println("User unbanned - resetting ban state");
+                }
             });
         });
         
@@ -145,6 +174,9 @@ public class SlotMachineGUI extends Application {
         System.out.println("Bejelentkezve: " + loginResponse.getUsername() + 
                           ", Balance: $" + loginResponse.getBalance());
 
+        // Stop main menu music before starting game music
+        MainMenu.stopMainMenuMusic();
+        
         gameMusic = ResourceLoader.loadSound("gamemusic.mp3",0);
         gameMusic.setCycleCount(MediaPlayer.INDEFINITE);
         gameMusic.play();
@@ -216,7 +248,9 @@ public class SlotMachineGUI extends Application {
         spinButton = createSpinButton();
         spinButton.setOnAction(_ -> {
             if (!disableButton) {
-                if (game.getBalance() >= game.getBet()) {
+                if (isUserBanned) {
+                    showUserBannedDialog(primaryStage);
+                } else if (game.getBalance() >= game.getBet()) {
                     disableButtons(true);
                     autoplaySettingsButton.setDisable(true);
                     isSpinning = true;
@@ -255,9 +289,28 @@ public class SlotMachineGUI extends Application {
         volumeButton.getStyleClass().add("volume-button");
         volumeButton.setPrefSize(get("VolumeButtonWidth"), get("VolumeButtonHeight"));
         volumeButton.setOnAction(_ -> showInGameSettings(primaryStage));
-        BorderPane.setAlignment(volumeButton,Pos.TOP_RIGHT);
-        BorderPane.setMargin(volumeButton,new Insets(get("VolumeButtonPaddingV"), get("VolumeButtonPaddingV1"), get("VolumeButtonPaddingV2"), get("VolumeButtonPaddingV3")));
-        root.setTop(volumeButton);
+        
+        // Username text styling and positioning (top-left)
+        usernameText.getStyleClass().add("username-text");
+        usernameText.setStyle("-fx-fill: white; -fx-font-size: 14px; -fx-font-family: 'Arial'; -fx-font-weight: bold;");
+        
+        // Container for username (top-left)
+        VBox topLeftContainer = new VBox(5);
+        topLeftContainer.setAlignment(Pos.TOP_LEFT);
+        topLeftContainer.getChildren().add(usernameText);
+        BorderPane.setAlignment(topLeftContainer, Pos.TOP_LEFT);
+        BorderPane.setMargin(topLeftContainer, new Insets(20, 0, 0, 20));
+        
+        // Volume button (top-right)
+        BorderPane.setAlignment(volumeButton, Pos.TOP_RIGHT);
+        BorderPane.setMargin(volumeButton, new Insets(get("VolumeButtonPaddingV"), get("VolumeButtonPaddingV1"), get("VolumeButtonPaddingV2"), get("VolumeButtonPaddingV3")));
+        
+        // Create top container with both left and right elements
+        HBox topContainer = new HBox();
+        topContainer.getChildren().addAll(topLeftContainer, new Region(), volumeButton);
+        HBox.setHgrow(topContainer.getChildren().get(1), Priority.ALWAYS); // Spacer
+        
+        root.setTop(topContainer);
 
         VBox leftPanel = new VBox(get("LeftPanelSpacing"), buyBonusButton);
         leftPanel.setAlignment(Pos.CENTER_LEFT);
@@ -862,12 +915,17 @@ public class SlotMachineGUI extends Application {
     }
 
     private void processNextStep() {
-        if (spinsRemaining <= 0 || !isSpinning) {
+        if (spinsRemaining <= 0 || !isSpinning || isUserBanned) {
             isSpinning = false;
             designAutoSpinButton();
             disableButtons(false);
             autoplaySettingsButton.setDisable(false);
             spinMode = SpinMode.NORMAL;
+            
+            // Show ban dialog if user was banned during auto spin
+            if (isUserBanned) {
+                Platform.runLater(() -> showUserBannedDialog((Stage) root.getScene().getWindow()));
+            }
             return;
         }
         if (game.getBalance() < game.getBet()) {
@@ -1596,6 +1654,8 @@ public class SlotMachineGUI extends Application {
                 new Thread(() -> {
                     try {
                         game.updateBalanceFromServerWithNotification();
+                        // Check for username changes
+                        updateUsernameFromServer();
                     } catch (Exception e) {
                         System.err.println("Balance polling error: " + e.getMessage());
                     }
@@ -1615,6 +1675,123 @@ public class SlotMachineGUI extends Application {
             balancePollingTimer = null;
             System.out.println("Balance polling leállítva");
         }
+    }
+
+    private void updateUsernameFromServer() {
+        if (game != null && game.isOnline()) {
+            try {
+                BalanceResponse response = apiClient.getBalance();
+                String newUsername = response.getUsername();
+                
+                // Update username if it changed
+                if (!usernameText.getText().equals(newUsername)) {
+                    Platform.runLater(() -> {
+                        usernameText.setText(newUsername);
+                        System.out.println("Username updated: " + newUsername);
+                    });
+                }
+            } catch (Exception e) {
+                // Ignore username update errors - they're handled by balance polling
+            }
+        }
+    }
+
+    private void showUserBannedDialog(Stage primaryStage) {
+        if (userBannedStage != null) {
+            userBannedStage.show();
+            userBannedStage.toFront();
+            return;
+        }
+
+        userBannedStage = new Stage();
+        userBannedStage.initStyle(StageStyle.TRANSPARENT);
+        userBannedStage.initModality(Modality.APPLICATION_MODAL);
+        userBannedStage.initOwner(primaryStage);
+
+        Label messageLabel = new Label("Account Banned!");
+        messageLabel.getStyleClass().add("dialog-label");
+        messageLabel.setStyle(String.format("-fx-font-size: %dpx;", get("SpinCountLabelFontSize")));
+
+        Label detailLabel = new Label("Your account has been suspended.\nPlease contact the administrator.");
+        detailLabel.getStyleClass().add("dialog-label");
+        detailLabel.setStyle(String.format("-fx-font-size: %dpx;", get("QuickSpinCheckBoxFontSize")));
+
+        Button closeButton = new Button("OK");
+        addSoundToWidget(closeButton);
+        closeButton.getStyleClass().add("dialog-save-button");
+        closeButton.setStyle(String.format(
+                "-fx-padding: %d %d; -fx-font-size: %dpx;",
+                get("OKButtonPaddingV"),
+                get("OKButtonPaddingH"),
+                get("LowBalanceOKButtonFontSize")
+        ));
+
+        closeButton.setOnAction(_ -> {
+            userBannedStage.close();
+            userBannedStage = null;
+            // Re-enable buttons after closing ban dialog
+            disableButtons(false);
+            autoplaySettingsButton.setDisable(false);
+            Platform.runLater(root::requestFocus); //reset focus to main window
+        });
+
+        VBox dialogVbox = new VBox(get("DialogVboxSpacing"), messageLabel, detailLabel, closeButton);
+        dialogVbox.setAlignment(Pos.CENTER);
+        dialogVbox.setPadding(new Insets(get("DialogVboxPaddingV")));
+        dialogVbox.setOpacity(0);
+        dialogVbox.setEffect(new DropShadow(100, Color.BLACK));
+        dialogVbox.getStyleClass().add("dialog-vbox");
+
+        FadeTransition fadeIn = new FadeTransition(Duration.millis(300), dialogVbox);
+        fadeIn.setFromValue(0);
+        fadeIn.setToValue(1);
+        fadeIn.play();
+
+        Button windowCloseButton = new Button();
+        windowCloseButton.getStyleClass().add("dialog-close-button");
+        addSoundToWidget(windowCloseButton);
+        windowCloseButton.setOnAction(_ -> {
+            userBannedStage.close();
+            userBannedStage = null;
+            // Re-enable buttons after closing ban dialog
+            disableButtons(false);
+            autoplaySettingsButton.setDisable(false);
+            Platform.runLater(root::requestFocus); //reset focus to main window
+        });
+        windowCloseButton.setPrefSize(get("LowBalanceCloseButtonWidth"), get("LowBalanceCloseButtonHeight"));
+        userBannedStage.setOnHidden(_ -> userBannedStage = null);
+
+        //Escape-re kilépés
+        userBannedStage.addEventHandler(KeyEvent.KEY_PRESSED, event -> {
+            if (event.getCode() == KeyCode.ESCAPE) {
+                userBannedStage.close();
+                userBannedStage = null;
+                // Re-enable buttons after closing ban dialog
+                disableButtons(false);
+                autoplaySettingsButton.setDisable(false);
+                Platform.runLater(root::requestFocus); //reset focus to main window
+            }
+        });
+
+        // Position the close button at the top-right corner
+        StackPane.setAlignment(windowCloseButton, Pos.TOP_RIGHT);
+        StackPane.setMargin(windowCloseButton, new Insets(get("LowBalanceCloseButtonPaddingV"), get("LowBalanceCloseButtonPaddingV1"), get("LowBalanceCloseButtonPaddingV2"), get("LowBalanceCloseButtonPaddingV3")));
+
+        StackPane root = new StackPane(dialogVbox, windowCloseButton);
+        // Create rounded corners for the dialog
+        Rectangle clip = new Rectangle(get("LowBalanceSceneWidth"), get("LowBalanceSceneHeight"));
+        clip.setArcWidth(40);
+        clip.setArcHeight(40);
+        root.setClip(clip);
+
+        Scene dialogScene = new Scene(root, get("LowBalanceSceneWidth"), get("LowBalanceSceneHeight"));
+        dialogScene.setFill(Color.TRANSPARENT);
+        dialogScene.getStylesheets().add("file:src/main/resources/configs/normalstyle.css");
+
+        userBannedStage.setScene(dialogScene);
+        userBannedStage.setResizable(false);
+        userBannedStage.show();
+        Platform.runLater(() -> Funtions.centerStage(userBannedStage, primaryStage));
     }
 
     @Override

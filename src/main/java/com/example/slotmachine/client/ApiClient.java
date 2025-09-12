@@ -10,15 +10,51 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 
+// Custom exception for banned users
+class UserBannedException extends RuntimeException {
+    public UserBannedException(String message) {
+        super(message);
+    }
+}
+
 public class ApiClient {
     private static final String DEFAULT_BASE_URL = "http://46.139.211.149:8080/api";
+    private static final String LOCALHOST_BASE_URL = "http://localhost:8080/api";
     private final String baseUrl;
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
     private String authToken;
 
     public ApiClient() {
-        this(DEFAULT_BASE_URL);
+        this(getPreferredServerUrl());
+    }
+    
+    private static String getPreferredServerUrl() {
+        // First try localhost
+        if (isServerAvailable(LOCALHOST_BASE_URL)) {
+            return LOCALHOST_BASE_URL;
+        }
+        // Fallback to external server
+        return DEFAULT_BASE_URL;
+    }
+    
+    private static boolean isServerAvailable(String serverUrl) {
+        try {
+            HttpClient testClient = HttpClient.newBuilder()
+                    .connectTimeout(Duration.ofSeconds(3))
+                    .build();
+            
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(serverUrl + "/auth/health"))
+                    .timeout(Duration.ofSeconds(5))
+                    .GET()
+                    .build();
+            
+            HttpResponse<String> response = testClient.send(request, HttpResponse.BodyHandlers.ofString());
+            return response.statusCode() == 200;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     public ApiClient(String serverUrl) {
@@ -89,6 +125,8 @@ public class ApiClient {
 
         if (response.statusCode() == 200) {
             return objectMapper.readValue(response.body(), BalanceResponse.class);
+        } else if (response.statusCode() == 403 && "USER_BANNED".equals(response.body())) {
+            throw new UserBannedException("Felhasználó tiltva lett");
         } else {
             throw new RuntimeException("Failed to get balance: " + response.body());
         }
@@ -114,6 +152,8 @@ public class ApiClient {
 
         if (response.statusCode() == 200) {
             return objectMapper.readValue(response.body(), SpinResponse.class);
+        } else if (response.statusCode() == 403 && "USER_BANNED".equals(response.body())) {
+            throw new UserBannedException("Felhasználó tiltva lett");
         } else {
             throw new RuntimeException("Spin failed: " + response.body());
         }
@@ -121,9 +161,9 @@ public class ApiClient {
 
     public boolean isConnected() {
         try {
+            // Use health endpoint for connection testing (no authentication required)
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(baseUrl + "/auth/validate"))
-                    .header("Authorization", "Bearer " + (authToken != null ? authToken : ""))
+                    .uri(URI.create(baseUrl + "/auth/health"))
                     .timeout(Duration.ofSeconds(15))
                     .GET()
                     .build();

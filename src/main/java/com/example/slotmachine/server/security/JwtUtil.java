@@ -20,6 +20,16 @@ public class JwtUtil {
                 .signWith(secretKey)
                 .compact();
     }
+    
+    public String generateTokenWithUserId(Long userId, String username) {
+        return Jwts.builder()
+                .subject(username)
+                .claim("userId", userId)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + jwtExpiration))
+                .signWith(secretKey)
+                .compact();
+    }
 
     public String getUsernameFromToken(String token) {
         return Jwts.parser()
@@ -28,6 +38,26 @@ public class JwtUtil {
                 .parseSignedClaims(token)
                 .getPayload()
                 .getSubject();
+    }
+    
+    public Long getUserIdFromToken(String token) {
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(secretKey)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+            
+            Object userIdObj = claims.get("userId");
+            if (userIdObj instanceof Integer) {
+                return ((Integer) userIdObj).longValue();
+            } else if (userIdObj instanceof Long) {
+                return (Long) userIdObj;
+            }
+            return null;
+        } catch (JwtException | IllegalArgumentException e) {
+            return null;
+        }
     }
 
     public boolean validateToken(String token) {

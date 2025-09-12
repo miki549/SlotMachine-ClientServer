@@ -1,17 +1,20 @@
 @echo off
-echo SlotMachine Kliens - Szerver Beallitas Teszt
-echo ==========================================
+echo SlotMachine Kliens - Kulso Szerver
+echo ===================================
 echo.
 
-echo Alapertelmezett szerver beallitasok:
+echo Kulso szerver beallitasok:
 echo - Szerver IP: 46.139.211.149
 echo - Port: 8080
 echo - Teljes URL: http://46.139.211.149:8080
 echo.
 
-echo Kliens inditasa...
+echo MEGJEGYZES: 
+echo - Helyi szerver teszteléshez használd: client-local.bat
+echo - A kliens automatikusan észleli a helyi szervert, ha elérhető
 echo.
-echo FONTOS: A kliens most automatikusan a 46.139.211.149:8080 szervert fogja hasznalni!
+
+echo Kliens inditasa...
 echo.
 
 pause

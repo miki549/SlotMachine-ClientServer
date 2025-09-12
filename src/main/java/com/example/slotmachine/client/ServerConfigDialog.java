@@ -15,7 +15,7 @@ import java.util.prefs.Preferences;
 
 public class ServerConfigDialog {
     private static final String SERVER_URL_KEY = "server_url";
-    private static final String DEFAULT_SERVER_URL = "http://localhost:8080";
+    private static final String DEFAULT_SERVER_URL = "http://46.139.211.149:8080";
     
     private final Preferences prefs;
     private String serverUrl;
@@ -43,7 +43,7 @@ public class ServerConfigDialog {
         TextField serverField = new TextField(serverUrl);
         serverField.setPrefWidth(300);
         
-        Label exampleLabel = new Label("Példa: http://192.168.1.100:8080 vagy http://your-server.com:8080");
+        Label exampleLabel = new Label("Példa: http://46.139.211.149:8080 (jelenlegi), http://192.168.1.100:8080 (helyi hálózat)");
         exampleLabel.setStyle("-fx-font-size: 10px; -fx-text-fill: gray;");
         
         Button testButton = new Button("Kapcsolat Tesztelése");

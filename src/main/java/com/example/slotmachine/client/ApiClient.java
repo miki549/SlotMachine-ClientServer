@@ -11,7 +11,7 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 
 public class ApiClient {
-    private static final String DEFAULT_BASE_URL = "http://localhost:8080/api";
+    private static final String DEFAULT_BASE_URL = "http://46.139.211.149:8080/api";
     private final String baseUrl;
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;

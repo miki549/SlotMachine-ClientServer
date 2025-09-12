@@ -36,6 +36,7 @@ public class ApiClient {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(baseUrl + "/auth/login"))
                 .header("Content-Type", "application/json")
+                .timeout(Duration.ofSeconds(30))
                 .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
                 .build();
 
@@ -57,6 +58,7 @@ public class ApiClient {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(baseUrl + "/auth/register"))
                 .header("Content-Type", "application/json")
+                .timeout(Duration.ofSeconds(30))
                 .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
                 .build();
 
@@ -79,6 +81,7 @@ public class ApiClient {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(baseUrl + "/game/balance"))
                 .header("Authorization", "Bearer " + authToken)
+                .timeout(Duration.ofSeconds(15))
                 .GET()
                 .build();
 
@@ -103,6 +106,7 @@ public class ApiClient {
                 .uri(URI.create(baseUrl + "/game/spin"))
                 .header("Content-Type", "application/json")
                 .header("Authorization", "Bearer " + authToken)
+                .timeout(Duration.ofSeconds(30))
                 .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
                 .build();
 
@@ -120,6 +124,7 @@ public class ApiClient {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(baseUrl + "/auth/validate"))
                     .header("Authorization", "Bearer " + (authToken != null ? authToken : ""))
+                    .timeout(Duration.ofSeconds(15))
                     .GET()
                     .build();
 

@@ -11,12 +11,18 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 
 public class ApiClient {
-    private static final String BASE_URL = "http://localhost:8080/api";
+    private static final String DEFAULT_BASE_URL = "http://localhost:8080/api";
+    private final String baseUrl;
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
     private String authToken;
 
     public ApiClient() {
+        this(DEFAULT_BASE_URL);
+    }
+
+    public ApiClient(String serverUrl) {
+        this.baseUrl = serverUrl.endsWith("/api") ? serverUrl : serverUrl + "/api";
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
                 .build();
@@ -28,7 +34,7 @@ public class ApiClient {
         String jsonBody = objectMapper.writeValueAsString(loginRequest);
 
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + "/auth/login"))
+                .uri(URI.create(baseUrl + "/auth/login"))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
                 .build();
@@ -49,7 +55,7 @@ public class ApiClient {
         String jsonBody = objectMapper.writeValueAsString(registerRequest);
 
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + "/auth/register"))
+                .uri(URI.create(baseUrl + "/auth/register"))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
                 .build();
@@ -71,7 +77,7 @@ public class ApiClient {
         }
 
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + "/game/balance"))
+                .uri(URI.create(baseUrl + "/game/balance"))
                 .header("Authorization", "Bearer " + authToken)
                 .GET()
                 .build();
@@ -94,7 +100,7 @@ public class ApiClient {
         String jsonBody = objectMapper.writeValueAsString(spinRequest);
 
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + "/game/spin"))
+                .uri(URI.create(baseUrl + "/game/spin"))
                 .header("Content-Type", "application/json")
                 .header("Authorization", "Bearer " + authToken)
                 .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
@@ -112,7 +118,7 @@ public class ApiClient {
     public boolean isConnected() {
         try {
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(BASE_URL + "/auth/validate"))
+                    .uri(URI.create(baseUrl + "/auth/validate"))
                     .header("Authorization", "Bearer " + (authToken != null ? authToken : ""))
                     .GET()
                     .build();
@@ -130,5 +136,9 @@ public class ApiClient {
 
     public String getAuthToken() {
         return authToken;
+    }
+
+    public String getServerUrl() {
+        return baseUrl.replace("/api", "");
     }
 }

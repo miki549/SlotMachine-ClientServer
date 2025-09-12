@@ -1,6 +1,7 @@
 package com.example.slotmachine;
 
 import com.example.slotmachine.client.ApiClient;
+import com.example.slotmachine.client.ServerConfigDialog;
 import com.example.slotmachine.client.LoginDialog;
 import com.example.slotmachine.server.dto.LoginResponse;
 import javafx.animation.*;
@@ -101,8 +102,10 @@ public class SlotMachineGUI extends Application {
     }
     @Override
     public void start(Stage primaryStage) {
-        // Inicializálás
-        apiClient = new ApiClient();
+        // Inicializálás - használjuk a mentett szerver konfigurációt
+        ServerConfigDialog serverConfig = new ServerConfigDialog();
+        String serverUrl = serverConfig.getServerUrl();
+        apiClient = new ApiClient(serverUrl);
         
         // Bejelentkezési dialógus megjelenítése
         LoginDialog loginDialog = new LoginDialog(apiClient);

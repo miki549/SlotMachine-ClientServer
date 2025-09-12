@@ -1,5 +1,6 @@
 package com.example.slotmachine;
 
+import com.example.slotmachine.client.ServerConfigDialog;
 import javafx.animation.FadeTransition;
 import javafx.animation.Timeline;
 import javafx.animation.KeyFrame;
@@ -302,6 +303,16 @@ public class MainMenu extends Application {
         windowControls.setAlignment(Pos.CENTER_LEFT);
         windowControls.getChildren().addAll(windowSizeLabel, windowSizeCombo);
 
+        // Server configuration button
+        Button serverConfigButton = new Button("Szerver Beállítások");
+        serverConfigButton.getStyleClass().add("settings-button");
+        addSoundToWidget(serverConfigButton);
+        serverConfigButton.setStyle(String.format("-fx-font-size: %dpx", get("MMComboBoxFontSize")));
+        serverConfigButton.setOnAction(_ -> {
+            ServerConfigDialog serverDialog = new ServerConfigDialog();
+            serverDialog.showAndWait(settingsStage);
+        });
+
         volumeSlider.valueProperty().addListener((_, _, newValue) -> {
             volume = newValue.doubleValue();
             mainMenuMusic.setVolume(volume);
@@ -359,7 +370,7 @@ public class MainMenu extends Application {
         StackPane root = new StackPane();
 
         VBox settingsLayout = new VBox(20);
-        settingsLayout.getChildren().addAll(volumeControls, windowControls);
+        settingsLayout.getChildren().addAll(volumeControls, windowControls, serverConfigButton);
         settingsLayout.setStyle("-fx-background-color: #333; " +
                 "-fx-border-color: #ffd700; " +
                 "-fx-border-width: 2px; " +

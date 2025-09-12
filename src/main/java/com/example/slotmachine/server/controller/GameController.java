@@ -15,7 +15,7 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/game")
-@CrossOrigin(origins = "*") // Development only
+@CrossOrigin(origins = "*") // Allow all origins for external access
 public class GameController {
 
     @Autowired

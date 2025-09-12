@@ -48,6 +48,37 @@ mvn javafx:run
 # Vagy IDE-ből: SlotMachineGUI.main()
 ```
 
+### 🌐 Külső Hozzáférés Beállítása
+
+A szerver most már bárhonnan elérhető! A konfiguráláshoz:
+
+1. **Szerver oldal**: A szerver automatikusan `0.0.0.0:8080`-on indul, így minden hálózati interfészen elérhető
+2. **Kliens oldal**: A főmenü "Settings" → "Szerver Beállítások" menüpontjában állíthatod be a szerver címét
+
+**Példa szerver címek:**
+- Helyi hálózat: `http://192.168.1.100:8080`
+- Nyilvános szerver: `http://your-domain.com:8080`
+- Localhost (alapértelmezett): `http://localhost:8080`
+
+**Hálózati követelmények:**
+- A 8080-as port legyen nyitva a szerveren
+- Ha tűzfal van, engedélyezd a bejövő kapcsolatokat a 8080-as porton
+- Router esetén port forwarding szükséges lehet
+
+### 🏠 Otthoni Szerver Külső Elérhetősége
+
+Ha az otthoni gépeden futtatod a szervert és szeretnéd, hogy külső hálózatból (internetről) is elérjék:
+
+**📋 Részletes útmutató**: Lásd az `EXTERNAL-ACCESS-SETUP.md` fájlt!
+
+**Gyors összefoglaló:**
+1. **Windows Tűzfal**: Engedélyezd a 8080-as portot
+2. **Router Port Forwarding**: Állítsd be a 8080 → belső IP forwarding-ot
+3. **Nyilvános IP**: Használd a nyilvános IP címedet vagy DDNS szolgáltatást
+4. **Kliens beállítás**: `http://[NYILVANOS_IP]:8080`
+
+**⚠️ Biztonsági figyelmeztetés**: Külső hozzáférés biztonsági kockázatokkal jár! Használj erős jelszavakat és fontold meg VPN használatát.
+
 ### 3. Admin alkalmazás (kreditek hozzáadásához)
 ```bash
 # Windows

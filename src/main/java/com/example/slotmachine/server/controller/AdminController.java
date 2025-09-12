@@ -13,7 +13,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin")
-@CrossOrigin(origins = "*") // Development only
+@CrossOrigin(origins = "*") // Allow all origins for external access
 public class AdminController {
 
     @Autowired

@@ -13,7 +13,7 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "*") // Development only - should be restricted in production
+@CrossOrigin(origins = "*") // Allow all origins for external access
 public class AuthController {
 
     @Autowired

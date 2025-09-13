@@ -4,6 +4,7 @@ import com.example.slotmachine.server.entity.GameTransaction;
 import com.example.slotmachine.server.entity.User;
 import com.example.slotmachine.server.service.GameService;
 import com.example.slotmachine.server.service.UserService;
+import com.example.slotmachine.server.service.TransactionCleanupService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,6 +22,9 @@ public class AdminController {
 
     @Autowired
     private GameService gameService;
+    
+    @Autowired
+    private TransactionCleanupService transactionCleanupService;
 
     @PostMapping("/add-credits")
     public ResponseEntity<?> addCredits(@RequestBody Map<String, Object> request) {
@@ -155,6 +159,17 @@ public class AdminController {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body("Failed to rename user: " + e.getMessage());
+        }
+    }
+    
+    @PostMapping("/cleanup-transactions")
+    public ResponseEntity<?> cleanupTransactions() {
+        try {
+            int deletedCount = transactionCleanupService.manualCleanup();
+            return ResponseEntity.ok("Cleanup completed. " + deletedCount + " old transactions deleted.");
+            
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Failed to cleanup transactions: " + e.getMessage());
         }
     }
 }

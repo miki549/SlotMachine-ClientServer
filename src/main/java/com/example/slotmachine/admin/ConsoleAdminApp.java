@@ -27,8 +27,9 @@ public class ConsoleAdminApp {
             System.out.println("5. Felhasználó átnevezése");
             System.out.println("6. Felhasználó törlése");
             System.out.println("7. Felhasználó tranzakciói");
-            System.out.println("8. Kilépés");
-            System.out.print("Válassz opciót (1-8): ");
+            System.out.println("8. Tranzakciók cleanup (1000 limit)");
+            System.out.println("9. Kilépés");
+            System.out.print("Válassz opciót (1-9): ");
 
             String choice = scanner.nextLine().trim();
 
@@ -55,6 +56,9 @@ public class ConsoleAdminApp {
                     getUserTransactions(scanner);
                     break;
                 case "8":
+                    cleanupTransactions();
+                    break;
+                case "9":
                     System.out.println("Kilépés...");
                     scanner.close();
                     return;
@@ -67,11 +71,8 @@ public class ConsoleAdminApp {
     }
 
     private static void addCredits(Scanner scanner) {
-        System.out.print("Felhasználónév: ");
-        String username = scanner.nextLine().trim();
-
-        if (username.isEmpty()) {
-            System.out.println("Hiba: A felhasználónév nem lehet üres!");
+        String username = selectUser(scanner);
+        if (username == null) {
             return;
         }
 
@@ -160,12 +161,76 @@ public class ConsoleAdminApp {
         }
     }
 
-    private static void setBalance(Scanner scanner) {
-        System.out.print("Felhasználónév: ");
-        String username = scanner.nextLine().trim();
+    private static String selectUser(Scanner scanner) {
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(BASE_URL + "/users"))
+                    .GET()
+                    .build();
 
-        if (username.isEmpty()) {
-            System.out.println("Hiba: A felhasználónév nem lehet üres!");
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 200) {
+                String responseBody = response.body();
+                
+                if (responseBody.contains("[]")) {
+                    System.out.println("Nincsenek regisztrált felhasználók.");
+                    return null;
+                } else {
+                    System.out.println("=== FELHASZNÁLÓ KIVÁLASZTÁS ===");
+                    String[] users = responseBody.split("\\},\\{");
+                    String[] usernames = new String[users.length];
+                    
+                    for (int i = 0; i < users.length; i++) {
+                        String user = users[i].replace("[{", "").replace("}]", "").replace("\"", "");
+                        String[] fields = user.split(",");
+                        
+                        String username = "", balance = "", active = "";
+                        for (String field : fields) {
+                            if (field.contains("username:")) {
+                                username = field.split(":")[1];
+                            } else if (field.contains("balance:")) {
+                                balance = field.split(":")[1];
+                            } else if (field.contains("active:")) {
+                                active = field.split(":")[1];
+                            }
+                        }
+                        
+                        usernames[i] = username;
+                        String status = "true".equals(active) ? "✅ Aktív" : "❌ Tiltott";
+                        System.out.println((i+1) + ". " + username + " - $" + balance + " - " + status);
+                    }
+                    
+                    System.out.print("Válassz felhasználót (sorszám): ");
+                    String input = scanner.nextLine().trim();
+                    
+                    try {
+                        int index = Integer.parseInt(input) - 1;
+                        if (index >= 0 && index < usernames.length) {
+                            return usernames[index];
+                        } else {
+                            System.out.println("❌ Hiba: Érvénytelen sorszám!");
+                            return null;
+                        }
+                    } catch (NumberFormatException e) {
+                        System.out.println("❌ Hiba: Kérlek számot adj meg!");
+                        return null;
+                    }
+                }
+            } else {
+                System.out.println("❌ Hiba a felhasználók lekérésekor: " + response.body());
+                return null;
+            }
+
+        } catch (Exception e) {
+            System.out.println("❌ Hálózati hiba: " + e.getMessage());
+            return null;
+        }
+    }
+
+    private static void setBalance(Scanner scanner) {
+        String username = selectUser(scanner);
+        if (username == null) {
             return;
         }
 
@@ -205,11 +270,8 @@ public class ConsoleAdminApp {
     }
 
     private static void toggleUserStatus(Scanner scanner) {
-        System.out.print("Felhasználónév: ");
-        String username = scanner.nextLine().trim();
-
-        if (username.isEmpty()) {
-            System.out.println("Hiba: A felhasználónév nem lehet üres!");
+        String username = selectUser(scanner);
+        if (username == null) {
             return;
         }
 
@@ -242,11 +304,9 @@ public class ConsoleAdminApp {
     }
 
     private static void renameUser(Scanner scanner) {
-        System.out.print("Jelenlegi felhasználónév: ");
-        String oldUsername = scanner.nextLine().trim();
-
-        if (oldUsername.isEmpty()) {
-            System.out.println("Hiba: A felhasználónév nem lehet üres!");
+        System.out.println("=== RÉGI FELHASZNÁLÓ KIVÁLASZTÁSA ===");
+        String oldUsername = selectUser(scanner);
+        if (oldUsername == null) {
             return;
         }
 
@@ -282,11 +342,8 @@ public class ConsoleAdminApp {
     }
 
     private static void deleteUser(Scanner scanner) {
-        System.out.print("Törlendő felhasználónév: ");
-        String username = scanner.nextLine().trim();
-
-        if (username.isEmpty()) {
-            System.out.println("Hiba: A felhasználónév nem lehet üres!");
+        String username = selectUser(scanner);
+        if (username == null) {
             return;
         }
 
@@ -319,11 +376,8 @@ public class ConsoleAdminApp {
     }
 
     private static void getUserTransactions(Scanner scanner) {
-        System.out.print("Felhasználónév: ");
-        String username = scanner.nextLine().trim();
-
-        if (username.isEmpty()) {
-            System.out.println("Hiba: A felhasználónév nem lehet üres!");
+        String username = selectUser(scanner);
+        if (username == null) {
             return;
         }
 
@@ -469,6 +523,39 @@ public class ConsoleAdminApp {
             return dateStr.split("T")[0];
         }
         return dateStr.length() > 20 ? dateStr.substring(0, 20) : dateStr;
+    }
+    
+    private static void cleanupTransactions() {
+        System.out.println("=== TRANZAKCIÓK CLEANUP ===");
+        System.out.println("Ez a művelet törli a régi tranzakciókat, hogy minden felhasználónál maximum 1000 tranzakció maradjon.");
+        System.out.print("Biztosan folytatod? (igen/nem): ");
+        
+        Scanner scanner = new Scanner(System.in);
+        String confirm = scanner.nextLine().trim().toLowerCase();
+        
+        if (!confirm.equals("igen") && !confirm.equals("i")) {
+            System.out.println("Cleanup megszakítva.");
+            return;
+        }
+        
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(BASE_URL + "/cleanup-transactions"))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString("{}"))
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 200) {
+                System.out.println("✅ " + response.body());
+            } else {
+                System.out.println("❌ Hiba: " + response.body());
+            }
+
+        } catch (Exception e) {
+            System.out.println("❌ Hálózati hiba: " + e.getMessage());
+        }
     }
 
 }

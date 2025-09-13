@@ -52,17 +52,17 @@ mvn javafx:run
 
 A szerver most már bárhonnan elérhető! A konfiguráláshoz:
 
-1. **Szerver oldal**: A szerver automatikusan `0.0.0.0:8080`-on indul, így minden hálózati interfészen elérhető
+1. **Szerver oldal**: A szerver automatikusan `0.0.0.0:8081`-en indul, így minden hálózati interfészen elérhető
 2. **Kliens oldal**: A főmenü "Settings" → "Szerver Beállítások" menüpontjában állíthatod be a szerver címét
 
 **Példa szerver címek:**
-- Nyilvános szerver (alapértelmezett): `http://46.139.211.149:8080`
-- Helyi hálózat: `http://192.168.1.100:8080`
-- Localhost: `http://localhost:8080`
+- Nyilvános szerver (alapértelmezett): `http://46.139.211.149:8081`
+- Helyi hálózat: `http://192.168.1.100:8081`
+- Localhost: `http://localhost:8081`
 
 **Hálózati követelmények:**
-- A 8080-as port legyen nyitva a szerveren
-- Ha tűzfal van, engedélyezd a bejövő kapcsolatokat a 8080-as porton
+- A 8081-es port legyen nyitva a szerveren
+- Ha tűzfal van, engedélyezd a bejövő kapcsolatokat a 8081-es porton
 - Router esetén port forwarding szükséges lehet
 
 ### 🏠 Otthoni Szerver Külső Elérhetősége
@@ -72,10 +72,10 @@ Ha az otthoni gépeden futtatod a szervert és szeretnéd, hogy külső hálóza
 **📋 Részletes útmutató**: Lásd az `EXTERNAL-ACCESS-SETUP.md` fájlt!
 
 **Gyors összefoglaló:**
-1. **Windows Tűzfal**: Engedélyezd a 8080-as portot
-2. **Router Port Forwarding**: Állítsd be a 8080 → belső IP forwarding-ot
+1. **Windows Tűzfal**: Engedélyezd a 8081-es portot
+2. **Router Port Forwarding**: Állítsd be a 8081 → belső IP forwarding-ot
 3. **Nyilvános IP**: Használd a nyilvános IP címedet vagy DDNS szolgáltatást
-4. **Kliens beállítás**: `http://46.139.211.149:8080` (alapértelmezett)
+4. **Kliens beállítás**: `http://46.139.211.149:8081` (alapértelmezett)
 
 **⚠️ Biztonsági figyelmeztetés**: Külső hozzáférés biztonsági kockázatokkal jár! Használj erős jelszavakat és fontold meg VPN használatát.
 
@@ -107,7 +107,7 @@ mvn javafx:run -Djavafx.mainClass=com.example.slotmachine.admin.AdminApp
 
 A fejlesztési környezetben H2 fájl alapú adatbázist használunk (állandó tárolás):
 - Adatbázis fájl: `./data/slotmachine.mv.db`
-- H2 Console: `http://localhost:8080/h2-console`
+- H2 Console: `http://localhost:8081/h2-console`
 - JDBC URL: `jdbc:h2:file:./data/slotmachine`
 - Username: `sa`
 - Password: (üres)

@@ -5,15 +5,15 @@ echo.
 
 echo Helyi szerver beallitasok:
 echo - Szerver IP: localhost (127.0.0.1)
-echo - Port: 8080
-echo - Teljes URL: http://localhost:8080
+echo - Port: 8081
+echo - Teljes URL: http://localhost:8081
 echo.
 
 echo FONTOS: Eloszor inditsd el a szervert (server.bat), majd ezt a klienst!
 echo.
 
 echo Helyi szerver ellenorzese...
-curl -s http://localhost:8080/api/auth/health >nul 2>&1
+curl -s http://localhost:8081/api/auth/health >nul 2>&1
 if %errorlevel% == 0 (
     echo ✅ Helyi szerver elérhető!
 ) else (

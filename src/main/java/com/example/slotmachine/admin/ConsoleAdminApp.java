@@ -8,7 +8,7 @@ import java.net.http.HttpResponse;
 import java.util.Scanner;
 
 public class ConsoleAdminApp {
-    private static final String BASE_URL = "http://localhost:8080/api/admin";
+    private static final String BASE_URL = "http://localhost:8081/api/admin";
     private static final HttpClient httpClient = HttpClient.newHttpClient();
 
     public static void main(String[] args) {
@@ -109,7 +109,7 @@ public class ConsoleAdminApp {
             System.out.println("Hiba: Érvénytelen szám formátum!");
         } catch (IOException | InterruptedException e) {
             System.out.println("Hiba: Nem lehet kapcsolódni a szerverhez!");
-            System.out.println("Ellenőrizd, hogy a szerver fut-e a 8080-as porton.");
+            System.out.println("Ellenőrizd, hogy a szerver fut-e a 8081-es porton.");
             System.out.println("Részletek: " + e.getMessage());
         }
     }

@@ -23,14 +23,14 @@ Ez az útmutató segít beállítani az otthoni SlotMachine szervert úgy, hogy 
 #### Automatikus beállítás (Adminisztrátori jogosultság szükséges):
 ```cmd
 # Nyisd meg a Command Prompt-ot ADMINISZTRÁTORKÉNT!
-netsh advfirewall firewall add rule name="SlotMachine Server" dir=in action=allow protocol=TCP localport=8080
+netsh advfirewall firewall add rule name="SlotMachine Server" dir=in action=allow protocol=TCP localport=8081
 ```
 
 #### Kézi beállítás:
 1. Nyisd meg a **Windows Defender Firewall with Advanced Security**-t
 2. Kattints a **Inbound Rules** → **New Rule...**
 3. Válaszd a **Port** → **Next**
-4. **TCP** → **Specific local ports** → írd be: `8080`
+4. **TCP** → **Specific local ports** → írd be: `8081`
 5. **Allow the connection** → **Next**
 6. Jelöld be mind a három profilt (Domain, Private, Public) → **Next**
 7. Név: `SlotMachine Server` → **Finish**
@@ -46,8 +46,8 @@ netsh advfirewall firewall add rule name="SlotMachine Server" dir=in action=allo
    - Keresd a **Port Forwarding** vagy **Virtual Servers** menüt
    - Adj hozzá új szabályt:
      - **Service Name**: SlotMachine Server
-     - **External Port**: 8080
-     - **Internal Port**: 8080
+    - **External Port**: 8081
+    - **Internal Port**: 8081
      - **Internal IP**: [A számítógéped helyi IP címe]
      - **Protocol**: TCP
 
@@ -88,27 +88,27 @@ netsh advfirewall firewall add rule name="SlotMachine Server" dir=in action=allo
 
 #### Belső hálózatról:
 ```
-http://[HELYI_IP]:8080/api/auth/login
-Példa: http://192.168.1.100:8080/api/auth/login
+http://[HELYI_IP]:8081/api/auth/login
+Példa: http://192.168.1.100:8081/api/auth/login
 ```
 
 #### Külső hálózatról:
 ```
-http://[NYILVANOS_IP]:8080/api/auth/login
-Példa: http://123.45.67.89:8080/api/auth/login
+http://[NYILVANOS_IP]:8081/api/auth/login
+Példa: http://123.45.67.89:8081/api/auth/login
 
 # Vagy DDNS esetén:
-http://your-domain.ddns.net:8080/api/auth/login
+http://your-domain.ddns.net:8081/api/auth/login
 ```
 
 ### 5. Kliens Konfiguráció
 
 #### Belső hálózatról csatlakozók:
-- Szerver cím: `http://192.168.1.100:8080` (helyi IP)
+- Szerver cím: `http://192.168.1.100:8081` (helyi IP)
 
 #### Külső hálózatról csatlakozók:
-- Szerver cím: `http://123.45.67.89:8080` (nyilvános IP)
-- Vagy: `http://your-domain.ddns.net:8080` (DDNS)
+- Szerver cím: `http://123.45.67.89:8081` (nyilvános IP)
+- Vagy: `http://your-domain.ddns.net:8081` (DDNS)
 
 ---
 
@@ -139,13 +139,13 @@ http://your-domain.ddns.net:8080/api/auth/login
 
 ```cmd
 # Port elérhetőség tesztelése
-telnet [IP_CIM] 8080
+telnet [IP_CIM] 8081
 
 # Hálózati kapcsolat tesztelése
 ping [IP_CIM]
 
 # Port figyelés ellenőrzése
-netstat -an | find "8080"
+netstat -an | find "8081"
 ```
 
 ---
@@ -155,8 +155,8 @@ netstat -an | find "8080"
 Mielőtt külső hozzáférést engedélyeznél:
 
 - [ ] **Szerver biztonsága**: Erős jelszavak, frissítések
-- [ ] **Windows tűzfal**: 8080-as port engedélyezve
-- [ ] **Router port forwarding**: 8080 → belső IP
+- [ ] **Windows tűzfal**: 8081-es port engedélyezve
+- [ ] **Router port forwarding**: 8081 → belső IP
 - [ ] **Nyilvános IP**: Ismert és elérhető
 - [ ] **DDNS beállítva** (ha dinamikus IP)
 - [ ] **Tesztelés**: Belső és külső hálózatról is
@@ -167,7 +167,7 @@ Mielőtt külső hozzáférést engedélyeznél:
 
 ## 🛡️ Biztonsági Tippek
 
-1. **Ne használj alapértelmezett portot**: Változtasd meg a 8080-at másra (pl. 18080)
+1. **Ne használj alapértelmezett portot**: Változtasd meg a 8081-et másra (pl. 18081)
 2. **VPN használata**: Fontold meg VPN szerver beállítását
 3. **Fail2Ban**: Automatikus IP blokkolás túl sok sikertelen bejelentkezés után
 4. **SSL/HTTPS**: Éles környezetben használj HTTPS-t

@@ -8,9 +8,9 @@ echo ----------------
 for /f "tokens=2 delims=:" %%a in ('ipconfig ^| find "IPv4"') do echo %%a
 echo.
 
-echo 2. Helyi szerver teszt (localhost:8080):
+echo 2. Helyi szerver teszt (localhost:8081):
 echo ------------------------------------------
-curl -s -w "HTTP Status: %%{http_code}\n" http://localhost:8080/api/auth/health 2>nul
+curl -s -w "HTTP Status: %%{http_code}\n" http://localhost:8081/api/auth/health 2>nul
 if %errorlevel% == 0 (
     echo ✅ Helyi szerver elérhető!
 ) else (
@@ -18,9 +18,9 @@ if %errorlevel% == 0 (
 )
 echo.
 
-echo 3. Aktiv halozati kapcsolatok (8080-as port):
+echo 3. Aktiv halozati kapcsolatok (8081-es port):
 echo ----------------------------------------------
-netstat -an | find "8080"
+netstat -an | find "8081"
 echo.
 
 echo 4. Tuzfal szabalyok ellenorzese:
@@ -45,7 +45,7 @@ echo.
 echo 7. Port ellenorzes kulso eszkozon:
 echo ----------------------------------
 echo Hasznald: https://www.portchecker.co/
-echo Port: 8080
+echo Port: 8081
 echo IP: [nyilvanos IP cimed]
 echo.
 

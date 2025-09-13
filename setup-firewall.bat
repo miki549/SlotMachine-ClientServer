@@ -6,12 +6,12 @@ echo FIGYELEM: Ez a script adminisztratori jogosultsagot igenyel!
 echo.
 pause
 
-echo Tuzfal szabaly hozzaadasa a 8080-as porthoz...
-netsh advfirewall firewall add rule name="SlotMachine Server" dir=in action=allow protocol=TCP localport=8080
+echo Tuzfal szabaly hozzaadasa a 8081-as porthoz...
+netsh advfirewall firewall add rule name="SlotMachine Server" dir=in action=allow protocol=TCP localport=8081
 
 if %errorlevel% == 0 (
     echo.
-    echo ✓ Sikeres! A 8080-as port most mar elerheto kulso halozatrol.
+    echo ✓ Sikeres! A 8081-as port most mar elerheto kulso halozatrol.
     echo.
     echo Kovetkezo lepesek:
     echo 1. Router port forwarding beallitasa

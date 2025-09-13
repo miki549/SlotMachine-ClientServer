@@ -61,7 +61,7 @@ public class ServerConfigDialog {
         TextField serverField = new TextField(serverUrl);
         serverField.setPrefWidth(300);
         
-        Label exampleLabel = new Label("Példa: http://localhost:8080 (helyi szerver), http://46.139.211.149:8080 (külső szerver), http://192.168.1.100:8080 (helyi hálózat)");
+        Label exampleLabel = new Label("Példa: http://localhost:8081 (helyi szerver), http://46.139.211.149:8081 (külső szerver), http://192.168.1.100:8081 (helyi hálózat)");
         exampleLabel.setStyle("-fx-font-size: 10px; -fx-text-fill: gray;");
         
         Button testButton = new Button("Kapcsolat Tesztelése");

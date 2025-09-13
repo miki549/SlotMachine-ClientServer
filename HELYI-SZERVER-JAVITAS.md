@@ -2,7 +2,7 @@
 
 ## Probléma
 Az eredeti kódban a kliens nem tudott megfelelően kapcsolódni a helyi szerverre (localhost), mert:
-1. A kliens alapértelmezetten a külső szerverre (`46.139.211.149:8080`) próbált kapcsolódni
+1. A kliens alapértelmezetten a külső szerverre (`46.139.211.149:8081`) próbált kapcsolódni
 2. A kapcsolat tesztelés nem működött megfelelően autentikáció nélkül
 3. Nem volt automatikus localhost észlelés
 
@@ -37,7 +37,7 @@ Az eredeti kódban a kliens nem tudott megfelelően kapcsolódni a helyi szerver
 
 #### `check-network.bat` - Frissített:
 - Helyi szerver teszt hozzáadva
-- Localhost:8080 elérhetőség ellenőrzése
+- Localhost:8081 elérhetőség ellenőrzése
 - Átszámozott szekciók
 
 ## Használat
@@ -68,9 +68,9 @@ check-network.bat
 ## Technikai részletek
 
 ### Automatikus szerver választás logika:
-1. Kliens indításkor megpróbál kapcsolódni `localhost:8080`-ra
+1. Kliens indításkor megpróbál kapcsolódni `localhost:8081`-re
 2. Ha sikeres, localhost-ot használ
-3. Ha sikertelen, külső szerverre (`46.139.211.149:8080`) vált
+3. Ha sikertelen, külső szerverre (`46.139.211.149:8081`) vált
 4. A felhasználó manuálisan is beállíthatja a szerver címét
 
 ### Health endpoint:
@@ -108,7 +108,7 @@ check-network.bat
 ### Ha a helyi kapcsolat nem működik:
 1. Ellenőrizd, hogy fut-e a szerver: `check-network.bat`
 2. Firewall beállítások: `setup-firewall.bat`
-3. Port foglaltság: `netstat -an | find "8080"`
+3. Port foglaltság: `netstat -an | find "8081"`
 
 ### Ha a külső kapcsolat nem működik:
 1. Internet kapcsolat ellenőrzése

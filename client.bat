@@ -5,8 +5,8 @@ echo.
 
 echo Kulso szerver beallitasok:
 echo - Szerver IP: 46.139.211.149
-echo - Port: 8080
-echo - Teljes URL: http://46.139.211.149:8080
+echo - Port: 8081
+echo - Teljes URL: http://46.139.211.149:8081
 echo.
 
 echo MEGJEGYZES: 

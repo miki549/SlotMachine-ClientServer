@@ -15,8 +15,8 @@ import java.util.prefs.Preferences;
 
 public class ServerConfigDialog {
     private static final String SERVER_URL_KEY = "server_url";
-    private static final String DEFAULT_SERVER_URL = "http://46.139.211.149:8080";
-    private static final String LOCALHOST_URL = "http://localhost:8080";
+    private static final String DEFAULT_SERVER_URL = "http://46.139.211.149:8081";
+    private static final String LOCALHOST_URL = "http://localhost:8081";
     
     private final Preferences prefs;
     private String serverUrl;

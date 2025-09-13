@@ -25,8 +25,8 @@ class UserDeletedException extends RuntimeException {
 }
 
 public class ApiClient {
-    private static final String DEFAULT_BASE_URL = "http://46.139.211.149:8080/api";
-    private static final String LOCALHOST_BASE_URL = "http://localhost:8080/api";
+    private static final String DEFAULT_BASE_URL = "http://46.139.211.149:8081/api";
+    private static final String LOCALHOST_BASE_URL = "http://localhost:8081/api";
     private final String baseUrl;
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;

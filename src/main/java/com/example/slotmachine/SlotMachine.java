@@ -22,6 +22,7 @@ public class SlotMachine {
     private BalanceUpdateListener balanceUpdateListener;
     private UserBannedListener userBannedListener;
     private UserUnbannedListener userUnbannedListener;
+    private UserDeletedListener userDeletedListener;
 
     // Szimbólum valószínűségek és szorzók
     private final double[] symbolProbabilities = {12,12,12,14,14,16,15,4,1};  // Összesen 100%
@@ -547,6 +548,11 @@ private int generateNonScatterSymbol() {
                     if (userBannedListener != null) {
                         userBannedListener.onUserBanned();
                     }
+                } else if (e.getMessage() != null && e.getMessage().contains("Felhasználó törölve lett")) {
+                    // Check if it's a user deleted exception
+                    if (userDeletedListener != null) {
+                        userDeletedListener.onUserDeleted();
+                    }
                 } else {
                     System.err.println("Failed to update balance from server: " + e.getMessage());
                 }
@@ -563,6 +569,11 @@ private int generateNonScatterSymbol() {
     public void setUserUnbannedListener(UserUnbannedListener listener) {
         this.userUnbannedListener = listener;
     }
+    
+    // Setter for user deleted listener
+    public void setUserDeletedListener(UserDeletedListener listener) {
+        this.userDeletedListener = listener;
+    }
 
     // Interface for user banned notifications
     public interface UserBannedListener {
@@ -572,5 +583,10 @@ private int generateNonScatterSymbol() {
     // Interface for user unbanned notifications
     public interface UserUnbannedListener {
         void onUserUnbanned();
+    }
+    
+    // Interface for user deleted notifications
+    public interface UserDeletedListener {
+        void onUserDeleted();
     }
 }

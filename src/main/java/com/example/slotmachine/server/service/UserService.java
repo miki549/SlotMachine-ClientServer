@@ -2,6 +2,7 @@ package com.example.slotmachine.server.service;
 
 import com.example.slotmachine.server.entity.User;
 import com.example.slotmachine.server.repository.UserRepository;
+import com.example.slotmachine.server.repository.GameTransactionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,9 @@ public class UserService {
     
     @Autowired
     private UserRepository userRepository;
+    
+    @Autowired
+    private GameTransactionRepository gameTransactionRepository;
     
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -92,10 +96,15 @@ public class UserService {
         userRepository.save(user);
     }
 
+    @Transactional
     public void deleteUser(String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         
+        // Először töröljük a felhasználóhoz tartozó tranzakciókat
+        gameTransactionRepository.deleteByUser(user);
+        
+        // Majd töröljük magát a felhasználót
         userRepository.delete(user);
     }
 

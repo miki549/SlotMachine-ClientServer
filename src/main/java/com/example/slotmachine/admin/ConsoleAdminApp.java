@@ -301,6 +301,7 @@ public class ConsoleAdminApp {
         try {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(BASE_URL + "/user/" + username))
+                    .header("Content-Type", "application/json")
                     .DELETE()
                     .build();
 

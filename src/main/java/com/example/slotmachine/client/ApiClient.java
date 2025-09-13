@@ -17,6 +17,13 @@ class UserBannedException extends RuntimeException {
     }
 }
 
+// Custom exception for deleted users
+class UserDeletedException extends RuntimeException {
+    public UserDeletedException(String message) {
+        super(message);
+    }
+}
+
 public class ApiClient {
     private static final String DEFAULT_BASE_URL = "http://46.139.211.149:8080/api";
     private static final String LOCALHOST_BASE_URL = "http://localhost:8080/api";
@@ -127,6 +134,8 @@ public class ApiClient {
             return objectMapper.readValue(response.body(), BalanceResponse.class);
         } else if (response.statusCode() == 403 && "USER_BANNED".equals(response.body())) {
             throw new UserBannedException("Felhasználó tiltva lett");
+        } else if (response.statusCode() == 400 && response.body().contains("Invalid token or user not found")) {
+            throw new UserDeletedException("Felhasználó törölve lett");
         } else {
             throw new RuntimeException("Failed to get balance: " + response.body());
         }

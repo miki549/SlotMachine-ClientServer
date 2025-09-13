@@ -27,9 +27,13 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin/**").permitAll() // In production, this should be secured
                 .requestMatchers("/api/game/**").permitAll() // Temporarily allow all game endpoints for debugging
                 .requestMatchers("/h2-console/**").permitAll() // For H2 database console (development only)
+                .requestMatchers("/api/admin/user/**").permitAll() // Explicitly allow user management
                 .anyRequest().authenticated()
             )
-            .headers(headers -> headers.frameOptions().disable()); // For H2 console
+            .headers(headers -> headers.frameOptions().disable()) // For H2 console
+            .httpBasic(basic -> basic.disable()) // Disable basic auth
+            .formLogin(form -> form.disable()); // Disable form loginy
+            
 
         return http.build();
     }

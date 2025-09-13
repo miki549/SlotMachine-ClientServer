@@ -43,7 +43,7 @@ public class AdminController {
     }
 
     @GetMapping("/transactions/{username}")
-    public ResponseEntity<?> getUserTransactions(@PathVariable String username) {
+    public ResponseEntity<?> getUserTransactions(@PathVariable("username") String username) {
         try {
             List<GameTransaction> transactions = gameService.getUserTransactions(username);
             return ResponseEntity.ok(transactions);
@@ -125,7 +125,7 @@ public class AdminController {
     }
 
     @DeleteMapping("/user/{username}")
-    public ResponseEntity<?> deleteUser(@PathVariable String username) {
+    public ResponseEntity<?> deleteUser(@PathVariable("username") String username) {
         try {
             userService.deleteUser(username);
             return ResponseEntity.ok("User deleted successfully");

@@ -82,7 +82,7 @@ public class SlotMachineGUI extends Application {
     private SpinParameters spinParams;
     // CreditLoader már nem szükséges online módban
     // private final CreditLoader creditLoader = new CreditLoader(game);
-    private Stage autoSpinSettingsStage, volumeSettingsStage, lowBalanceStage, userBannedStage;
+    private Stage autoSpinSettingsStage, volumeSettingsStage, lowBalanceStage, userBannedStage, userDeletedStage;
     private MediaPlayer bonusBackgroundMusic;
     private MediaPlayer bonusTriggerSound;
     private MediaPlayer retriggerSound;
@@ -165,6 +165,16 @@ public class SlotMachineGUI extends Application {
                     isUserBanned = false;
                     System.out.println("User unbanned - resetting ban state");
                 }
+            });
+        });
+        
+        // User deleted listener beállítása
+        game.setUserDeletedListener(() -> {
+            Platform.runLater(() -> {
+                // Stop auto spinning if active
+                autoSpinCount = 0;
+                designAutoSpinButton();
+                showUserDeletedDialog(primaryStage);
             });
         });
         
@@ -1792,6 +1802,101 @@ public class SlotMachineGUI extends Application {
         userBannedStage.setResizable(false);
         userBannedStage.show();
         Platform.runLater(() -> Funtions.centerStage(userBannedStage, primaryStage));
+    }
+
+    private void showUserDeletedDialog(Stage primaryStage) {
+        if (userDeletedStage != null) {
+            userDeletedStage.show();
+            userDeletedStage.toFront();
+            return;
+        }
+
+        userDeletedStage = new Stage();
+        userDeletedStage.initStyle(StageStyle.TRANSPARENT);
+        userDeletedStage.initModality(Modality.APPLICATION_MODAL);
+        userDeletedStage.initOwner(primaryStage);
+
+        Label messageLabel = new Label("Account Deleted!");
+        messageLabel.getStyleClass().add("dialog-label");
+        messageLabel.setStyle(String.format("-fx-font-size: %dpx;", get("SpinCountLabelFontSize")));
+
+        Label detailLabel = new Label("Your account has been deleted.\nThe application will now close.");
+        detailLabel.getStyleClass().add("dialog-label");
+        detailLabel.setStyle(String.format("-fx-font-size: %dpx;", get("QuickSpinCheckBoxFontSize")));
+
+        Button exitButton = new Button("EXIT");
+        addSoundToWidget(exitButton);
+        exitButton.getStyleClass().add("dialog-save-button");
+        exitButton.setStyle(String.format(
+                "-fx-padding: %d %d; -fx-font-size: %dpx;",
+                get("OKButtonPaddingV"),
+                get("OKButtonPaddingH"),
+                get("LowBalanceOKButtonFontSize")
+        ));
+
+        exitButton.setOnAction(_ -> {
+            userDeletedStage.close();
+            userDeletedStage = null;
+            // Close the entire application
+            Platform.exit();
+            System.exit(0);
+        });
+
+        VBox dialogVbox = new VBox(get("DialogVboxSpacing"), messageLabel, detailLabel, exitButton);
+        dialogVbox.setAlignment(Pos.CENTER);
+        dialogVbox.setPadding(new Insets(get("DialogVboxPaddingV")));
+        dialogVbox.setOpacity(0);
+        dialogVbox.setEffect(new DropShadow(100, Color.BLACK));
+        dialogVbox.getStyleClass().add("dialog-vbox");
+
+        FadeTransition fadeIn = new FadeTransition(Duration.millis(300), dialogVbox);
+        fadeIn.setFromValue(0);
+        fadeIn.setToValue(1);
+        fadeIn.play();
+
+        Button windowCloseButton = new Button();
+        windowCloseButton.getStyleClass().add("dialog-close-button");
+        addSoundToWidget(windowCloseButton);
+        windowCloseButton.setOnAction(_ -> {
+            userDeletedStage.close();
+            userDeletedStage = null;
+            // Close the entire application
+            Platform.exit();
+            System.exit(0);
+        });
+        windowCloseButton.setPrefSize(get("LowBalanceCloseButtonWidth"), get("LowBalanceCloseButtonHeight"));
+        userDeletedStage.setOnHidden(_ -> userDeletedStage = null);
+
+        //Escape-re kilépés
+        userDeletedStage.addEventHandler(KeyEvent.KEY_PRESSED, event -> {
+            if (event.getCode() == KeyCode.ESCAPE) {
+                userDeletedStage.close();
+                userDeletedStage = null;
+                // Close the entire application
+                Platform.exit();
+                System.exit(0);
+            }
+        });
+
+        // Position the close button at the top-right corner
+        StackPane.setAlignment(windowCloseButton, Pos.TOP_RIGHT);
+        StackPane.setMargin(windowCloseButton, new Insets(get("LowBalanceCloseButtonPaddingV"), get("LowBalanceCloseButtonPaddingV1"), get("LowBalanceCloseButtonPaddingV2"), get("LowBalanceCloseButtonPaddingV3")));
+
+        StackPane root = new StackPane(dialogVbox, windowCloseButton);
+        // Create rounded corners for the dialog
+        Rectangle clip = new Rectangle(get("LowBalanceSceneWidth"), get("LowBalanceSceneHeight"));
+        clip.setArcWidth(40);
+        clip.setArcHeight(40);
+        root.setClip(clip);
+
+        Scene dialogScene = new Scene(root, get("LowBalanceSceneWidth"), get("LowBalanceSceneHeight"));
+        dialogScene.getStylesheets().add(getClass().getResource("/configs/normalstyle.css").toExternalForm());
+        dialogScene.setFill(Color.TRANSPARENT);
+
+        userDeletedStage.setScene(dialogScene);
+        userDeletedStage.setResizable(false);
+        userDeletedStage.show();
+        Platform.runLater(() -> Funtions.centerStage(userDeletedStage, primaryStage));
     }
 
     @Override

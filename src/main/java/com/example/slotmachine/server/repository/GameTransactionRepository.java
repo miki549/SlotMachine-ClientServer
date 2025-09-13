@@ -18,4 +18,6 @@ public interface GameTransactionRepository extends JpaRepository<GameTransaction
     
     @Query("SELECT SUM(t.amount) FROM GameTransaction t WHERE t.user = :user AND t.type = 'WIN' AND t.createdAt >= :since")
     Double getTotalWinsForUserSince(User user, LocalDateTime since);
+    
+    void deleteByUser(User user);
 }

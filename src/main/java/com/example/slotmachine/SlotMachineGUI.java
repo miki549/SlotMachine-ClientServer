@@ -89,6 +89,7 @@ public class SlotMachineGUI extends Application {
     private Stage bonusResultsStage;
     private boolean isBonusMode = false;
     private boolean isUserBanned = false;
+    private boolean isAutospinStopping = false; // Flag to track when autospin is being stopped but last spin is still running
     private Timeline balancePollingTimer;
 
     private static class SpinParameters {
@@ -285,7 +286,8 @@ public class SlotMachineGUI extends Application {
         autoplaySettingsButton.setTranslateY(get("AutoplaySettingsButtonTranslateY"));
         autoplaySettingsButton.setOnAction(_ -> {
             if (isSpinning) {
-                isSpinning = false;
+                // Set flag to stop autospin after current spin completes
+                isAutospinStopping = true;
                 autoSpinCount = 0;
                 designAutoSpinButton();
             } else {
@@ -902,6 +904,10 @@ public class SlotMachineGUI extends Application {
             spinButton.setDisable(disableButton);
             increaseBetButton.setDisable(disableButton);
             decreaseBetButton.setDisable(disableButton);
+            // Also disable autoplay settings button when autospin is stopping
+            if (isAutospinStopping) {
+                autoplaySettingsButton.setDisable(true);
+            }
         });
     }
 
@@ -927,6 +933,7 @@ public class SlotMachineGUI extends Application {
     private void processNextStep() {
         if (spinsRemaining <= 0 || !isSpinning || isUserBanned) {
             isSpinning = false;
+            isAutospinStopping = false; // Reset the stopping flag
             designAutoSpinButton();
             disableButtons(false);
             autoplaySettingsButton.setDisable(false);
@@ -941,6 +948,7 @@ public class SlotMachineGUI extends Application {
         if (game.getBalance() < game.getBet()) {
             Platform.runLater(() -> showLowBalanceMessage((Stage) root.getScene().getWindow()));
             isSpinning = false;
+            isAutospinStopping = false; // Reset the stopping flag
             designAutoSpinButton();
             disableButtons(false);
             autoplaySettingsButton.setDisable(false);
@@ -981,12 +989,20 @@ public class SlotMachineGUI extends Application {
                     int multiplier = (int) Math.ceil(spinPayout / bet);
                     showWinningPopup(spinPayout, multiplier, () -> {
                         spinsRemaining--;
+                        // If autospin is being stopped, set remaining spins to 0 to stop after this spin
+                        if (isAutospinStopping) {
+                            spinsRemaining = 0;
+                        }
                         PauseTransition pause = new PauseTransition(Duration.millis(500));
                         pause.setOnFinished(_ -> processNextStep());
                         pause.play();
                     });
                 } else {
                     spinsRemaining--;
+                    // If autospin is being stopped, set remaining spins to 0 to stop after this spin
+                    if (isAutospinStopping) {
+                        spinsRemaining = 0;
+                    }
                     PauseTransition pause = new PauseTransition(Duration.millis(500));
                     pause.setOnFinished(_ -> processNextStep());
                     pause.play();
@@ -1012,12 +1028,20 @@ public class SlotMachineGUI extends Application {
                         int multiplier = (int) Math.ceil(spinPayout / bet);
                         showWinningPopup(spinPayout, multiplier, () -> {
                             spinsRemaining--;
+                            // If autospin is being stopped, set remaining spins to 0 to stop after this spin
+                            if (isAutospinStopping) {
+                                spinsRemaining = 0;
+                            }
                             PauseTransition pause = new PauseTransition(Duration.millis(500));
                             pause.setOnFinished(_ -> processNextStep());
                             pause.play();
                         });
                     } else {
                         spinsRemaining--;
+                        // If autospin is being stopped, set remaining spins to 0 to stop after this spin
+                        if (isAutospinStopping) {
+                            spinsRemaining = 0;
+                        }
                         PauseTransition pause = new PauseTransition(Duration.millis(500));
                         pause.setOnFinished(_ -> processNextStep());
                         pause.play();

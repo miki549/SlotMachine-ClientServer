@@ -17,9 +17,6 @@ echo.
 echo Kliens inditasa...
 echo.
 
-pause
-
 echo Kliens inditasa Maven-nel...
 mvn javafx:run
 
-pause

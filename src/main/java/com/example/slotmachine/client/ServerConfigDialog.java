@@ -1,17 +1,26 @@
 package com.example.slotmachine.client;
 
+import com.example.slotmachine.ConfigManager;
+import com.example.slotmachine.ResourceLoader;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
+import javafx.scene.effect.DropShadow;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+import javafx.scene.media.MediaPlayer;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
+import javafx.util.Duration;
 
 import java.util.prefs.Preferences;
+
+import static com.example.slotmachine.ConfigManager.get;
 
 public class ServerConfigDialog {
     private static final String SERVER_URL_KEY = "server_url";
@@ -20,10 +29,20 @@ public class ServerConfigDialog {
     
     private final Preferences prefs;
     private String serverUrl;
+    private MediaPlayer buttonClickSound;
+    private double volume;
     
     public ServerConfigDialog() {
+        this(0.2); // Default volume for backward compatibility
+    }
+    
+    public ServerConfigDialog(double volume) {
         prefs = Preferences.userNodeForPackage(ServerConfigDialog.class);
         serverUrl = prefs.get(SERVER_URL_KEY, getPreferredDefaultUrl());
+        this.volume = volume;
+        
+        // Initialize button click sound with the provided volume
+        buttonClickSound = ResourceLoader.loadSound("buttonclick1.mp3", volume);
     }
     
     private String getPreferredDefaultUrl() {
@@ -47,51 +66,105 @@ public class ServerConfigDialog {
         Stage dialog = new Stage();
         dialog.initModality(Modality.APPLICATION_MODAL);
         dialog.initOwner(owner);
-        dialog.initStyle(StageStyle.UTILITY);
-        dialog.setTitle("Szerver Beállítások");
+        dialog.initStyle(StageStyle.TRANSPARENT);
         dialog.setResizable(false);
         
-        GridPane grid = new GridPane();
-        grid.setAlignment(Pos.CENTER);
-        grid.setHgap(10);
-        grid.setVgap(10);
-        grid.setPadding(new Insets(20, 150, 10, 10));
+        // Title label
+        Label titleLabel = new Label("Server Settings");
+        titleLabel.setStyle(String.format("-fx-font-size: %dpx; -fx-text-fill: white; -fx-font-weight: bold;", get("ServerConfigTitleFontSize")));
         
-        Label serverLabel = new Label("Szerver cím:");
+        // Server URL label
+        Label serverLabel = new Label("Server URL:");
+        serverLabel.setStyle(String.format("-fx-font-size: %dpx; -fx-text-fill: white;", get("ServerConfigLabelFontSize")));
+        
+        // Server URL input field
         TextField serverField = new TextField(serverUrl);
-        serverField.setPrefWidth(300);
+        serverField.setPrefWidth(get("ServerConfigFieldWidth"));
+        serverField.setStyle(String.format("-fx-font-size: %dpx;", get("ServerConfigFieldFontSize")));
         
-        Label exampleLabel = new Label("Példa: http://localhost:8081 (helyi szerver), http://46.139.211.149:8081 (külső szerver), http://192.168.1.100:8081 (helyi hálózat)");
-        exampleLabel.setStyle("-fx-font-size: 10px; -fx-text-fill: gray;");
+        // Example label
+        Label exampleLabel = new Label("Example: http://localhost:8081 (local server), http://46.139.211.149:8081 (external server), http://192.168.1.100:8081 (local network)");
+        exampleLabel.setStyle(String.format("-fx-font-size: %dpx; -fx-text-fill: gray;", get("ServerConfigExampleFontSize")));
+        exampleLabel.setWrapText(true);
+        exampleLabel.setMaxWidth(get("ServerConfigFieldWidth"));
         
-        Button testButton = new Button("Kapcsolat Tesztelése");
+        // Test button
+        Button testButton = new Button("Test Connection");
+        testButton.setPrefWidth(get("ServerConfigButtonWidth"));
+        testButton.setPrefHeight(get("ServerConfigButtonHeight"));
+        testButton.setStyle(String.format("-fx-font-size: %dpx;", get("ServerConfigButtonFontSize")));
+        testButton.getStyleClass().add("dialog-save-button");
+        addSoundToWidget(testButton);
+        
+        // OK and Cancel buttons
         Button okButton = new Button("OK");
-        Button cancelButton = new Button("Mégse");
+        okButton.setPrefWidth(get("ServerConfigButtonWidth"));
+        okButton.setPrefHeight(get("ServerConfigButtonHeight"));
+        okButton.setStyle(String.format("-fx-font-size: %dpx;", get("ServerConfigButtonFontSize")));
+        okButton.getStyleClass().add("dialog-save-button");
+        addSoundToWidget(okButton);
         
+        Button cancelButton = new Button("Cancel");
+        cancelButton.setPrefWidth(get("ServerConfigButtonWidth"));
+        cancelButton.setPrefHeight(get("ServerConfigButtonHeight"));
+        cancelButton.setStyle(String.format("-fx-font-size: %dpx;", get("ServerConfigButtonFontSize")));
+        cancelButton.getStyleClass().add("dialog-save-button");
+        addSoundToWidget(cancelButton);
+        
+        // Status label
         Label statusLabel = new Label();
-        statusLabel.setStyle("-fx-font-size: 12px;");
+        statusLabel.setStyle(String.format("-fx-text-fill: red; -fx-font-size: %dpx;", get("ServerConfigStatusFontSize")));
+        statusLabel.setWrapText(true);
+        statusLabel.setMaxWidth(get("ServerConfigStatusMaxWidth"));
+        statusLabel.setAlignment(Pos.CENTER);
         
-        grid.add(serverLabel, 0, 0);
-        grid.add(serverField, 1, 0);
-        grid.add(exampleLabel, 1, 1);
-        grid.add(testButton, 1, 2);
-        grid.add(statusLabel, 1, 3);
+        // Close button
+        Button closeButton = new Button();
+        closeButton.getStyleClass().add("dialog-close-button");
+        closeButton.setPrefSize(25, 25);
+        addSoundToWidget(closeButton);
         
-        HBox buttonBox = new HBox(10);
-        buttonBox.setAlignment(Pos.CENTER_RIGHT);
-        buttonBox.getChildren().addAll(okButton, cancelButton);
-        grid.add(buttonBox, 1, 4);
+        // Main layout
+        VBox mainLayout = new VBox(get("ServerConfigLayoutSpacing"));
+        mainLayout.setAlignment(Pos.CENTER);
+        mainLayout.setPadding(new Insets(get("ServerConfigLayoutPadding")));
+        
+        // Button container
+        VBox buttonContainer = new VBox(get("ServerConfigButtonContainerSpacing"));
+        buttonContainer.setAlignment(Pos.CENTER);
+        buttonContainer.getChildren().addAll(testButton, okButton, cancelButton);
+        
+        // Add all elements to main layout
+        mainLayout.getChildren().addAll(
+            titleLabel, serverLabel, serverField, exampleLabel, 
+            buttonContainer, statusLabel
+        );
+        
+        // Style the main layout
+        mainLayout.setStyle("-fx-background-color: rgba(0, 0, 0, 0.9); -fx-background-radius: 10;");
+        mainLayout.setEffect(new DropShadow(get("ServerConfigDropShadowRadius"), Color.BLACK));
+        
+        // Create rounded corners
+        Rectangle clip = new Rectangle(get("ServerConfigDialogWidth"), get("ServerConfigDialogHeight"));
+        clip.setArcWidth(get("ServerConfigClipArcWidth"));
+        clip.setArcHeight(get("ServerConfigClipArcHeight"));
+        mainLayout.setClip(clip);
+        
+        // Stack pane for close button positioning
+        StackPane root = new StackPane(mainLayout, closeButton);
+        StackPane.setAlignment(closeButton, Pos.TOP_RIGHT);
+        StackPane.setMargin(closeButton, new Insets(10, 10, 0, 0));
         
         testButton.setOnAction(_ -> {
             String testUrl = serverField.getText().trim();
             if (testUrl.isEmpty()) {
-                statusLabel.setText("❌ Kérem adja meg a szerver címét!");
-                statusLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: red;");
+                statusLabel.setText("❌ Please enter server URL!");
+                statusLabel.setStyle(String.format("-fx-text-fill: red; -fx-font-size: %dpx;", get("ServerConfigStatusFontSize")));
                 return;
             }
             
-            statusLabel.setText("🔄 Kapcsolat tesztelése...");
-            statusLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: blue;");
+            statusLabel.setText("🔄 Testing connection...");
+            statusLabel.setStyle(String.format("-fx-text-fill: blue; -fx-font-size: %dpx;", get("ServerConfigStatusFontSize")));
             
             // Aszinkron tesztelés
             Thread testThread = new Thread(() -> {
@@ -101,17 +174,17 @@ public class ServerConfigDialog {
                     
                     Platform.runLater(() -> {
                         if (connected) {
-                            statusLabel.setText("✅ Kapcsolat sikeres!");
-                            statusLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: green;");
+                            statusLabel.setText("✅ Connection successful!");
+                            statusLabel.setStyle(String.format("-fx-text-fill: green; -fx-font-size: %dpx;", get("ServerConfigStatusFontSize")));
                         } else {
-                            statusLabel.setText("❌ Nem sikerült csatlakozni a szerverhez!");
-                            statusLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: red;");
+                            statusLabel.setText("❌ Failed to connect to server!");
+                            statusLabel.setStyle(String.format("-fx-text-fill: red; -fx-font-size: %dpx;", get("ServerConfigStatusFontSize")));
                         }
                     });
                 } catch (Exception ex) {
                     Platform.runLater(() -> {
-                        statusLabel.setText("❌ Hiba: " + ex.getMessage());
-                        statusLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: red;");
+                        statusLabel.setText("❌ Error: " + ex.getMessage());
+                        statusLabel.setStyle(String.format("-fx-text-fill: red; -fx-font-size: %dpx;", get("ServerConfigStatusFontSize")));
                     });
                 }
             });
@@ -130,8 +203,8 @@ public class ServerConfigDialog {
                 prefs.put(SERVER_URL_KEY, serverUrl);
                 dialog.close();
             } else {
-                statusLabel.setText("❌ Kérem adja meg a szerver címét!");
-                statusLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: red;");
+                statusLabel.setText("❌ Please enter server URL!");
+                statusLabel.setStyle(String.format("-fx-text-fill: red; -fx-font-size: %dpx;", get("ServerConfigStatusFontSize")));
             }
         });
         
@@ -140,10 +213,19 @@ public class ServerConfigDialog {
             dialog.close();
         });
         
+        closeButton.setOnAction(_ -> {
+            serverUrl = null;
+            dialog.close();
+        });
+        
         // Enter key support
         serverField.setOnAction(_ -> okButton.fire());
         
-        Scene scene = new Scene(grid);
+        // Create scene
+        Scene scene = new Scene(root, get("ServerConfigDialogWidth"), get("ServerConfigDialogHeight"));
+        scene.setFill(Color.TRANSPARENT);
+        scene.getStylesheets().add("file:src/main/resources/configs/normalstyle.css");
+        
         dialog.setScene(scene);
         dialog.showAndWait();
         
@@ -156,5 +238,26 @@ public class ServerConfigDialog {
     
     public void saveServerUrl(String url) {
         prefs.put(SERVER_URL_KEY, url);
+    }
+    
+    /**
+     * Update the volume for button click sounds
+     */
+    public void setVolume(double volume) {
+        this.volume = volume;
+        if (buttonClickSound != null) {
+            buttonClickSound.setVolume(volume);
+        }
+    }
+    
+    /**
+     * Helper method to add sound to widgets
+     */
+    private void addSoundToWidget(Control obj) {
+        obj.setOnMousePressed(_ -> {
+            buttonClickSound.stop();
+            buttonClickSound.seek(Duration.ZERO);
+            buttonClickSound.play();
+        });
     }
 }

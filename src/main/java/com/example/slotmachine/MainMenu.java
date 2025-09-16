@@ -304,7 +304,7 @@ public class MainMenu extends Application {
         windowControls.getChildren().addAll(windowSizeLabel, windowSizeCombo);
 
         // Server configuration button
-        Button serverConfigButton = new Button("Szerver Beállítások");
+        Button serverConfigButton = new Button("Server Settings");
         serverConfigButton.getStyleClass().add("settings-button");
         addSoundToWidget(serverConfigButton);
         serverConfigButton.setStyle(String.format("-fx-font-size: %dpx", get("MMComboBoxFontSize")));

@@ -7,6 +7,7 @@ import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
+import javafx.scene.text.TextAlignment;
 import javafx.scene.control.*;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.layout.VBox;
@@ -79,6 +80,11 @@ public class LoginDialog {
         statusLabel.setWrapText(true);
         statusLabel.setMaxWidth(get("LoginStatusMaxWidth")); // Allow text wrapping for long messages
         statusLabel.setAlignment(Pos.CENTER); // Center align the text
+        statusLabel.setTextAlignment(TextAlignment.CENTER); // Center align multi-line text
+        // Set fixed height to prevent layout shifting when text wraps
+        statusLabel.setPrefHeight(get("LoginStatusFontSize") * 5); // Fixed height for 2-3 lines
+        statusLabel.setMinHeight(get("LoginStatusFontSize") * 5); // Minimum height
+        statusLabel.setMaxHeight(get("LoginStatusFontSize") * 5); // Maximum height
 
         // Event handlers
         loginButton.setOnAction(e -> {

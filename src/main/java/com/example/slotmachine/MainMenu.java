@@ -15,6 +15,7 @@ import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.*;
+import javafx.scene.layout.Region;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.media.MediaView;
@@ -256,13 +257,8 @@ public class MainMenu extends Application {
         //hang hozzáadása
         addSoundToWidget(volumeSlider);
 
-        // Create HBox for volume controls
-        HBox volumeControls = new HBox(10);
-        volumeControls.setAlignment(Pos.CENTER_LEFT);
-        volumeControls.getChildren().addAll(percentageLabel, volumeSlider);
-
         // Window size controls
-        Label windowSizeLabel = new Label("Window Size");
+        Label windowSizeLabel = new Label("Window Size:");
         windowSizeLabel.setStyle(String.format("-fx-font-size: %dpx", get("MMWindowSizeLabelFontSize")));
         windowSizeLabel.getStyleClass().add("dialog-label");
 
@@ -298,20 +294,38 @@ public class MainMenu extends Application {
         windowSizeCombo.setValue(currentWindowSize.substring(0, 1).toUpperCase() + currentWindowSize.substring(1));
         windowSizeCombo.setStyle(String.format("-fx-font-size: %dpx", get("MMComboBoxFontSize")));
 
-        // Create HBox for window size controls
-        HBox windowControls = new HBox(10);
-        windowControls.setAlignment(Pos.CENTER_LEFT);
-        windowControls.getChildren().addAll(windowSizeLabel, windowSizeCombo);
 
         // Server configuration button
         Button serverConfigButton = new Button("Server Settings");
-        serverConfigButton.getStyleClass().add("settings-button");
+        serverConfigButton.getStyleClass().add("server-config-button");
         addSoundToWidget(serverConfigButton);
-        serverConfigButton.setStyle(String.format("-fx-font-size: %dpx", get("MMComboBoxFontSize")));
+        serverConfigButton.setStyle(String.format("-fx-font-size: %dpx;", get("MMComboBoxFontSize")));
         serverConfigButton.setOnAction(_ -> {
             ServerConfigDialog serverDialog = new ServerConfigDialog();
             serverDialog.showAndWait(settingsStage);
         });
+
+        // Create HBox for volume control (label + slider)
+        HBox volumeControl = new HBox(get("SettingsVolumeSpacing"));
+        volumeControl.setAlignment(Pos.CENTER_LEFT);
+        volumeControl.getChildren().addAll(percentageLabel, volumeSlider);
+        
+        // Create HBox for window size control (label + combo box)
+        HBox windowSizeControl = new HBox(get("SettingsWindowSizeSpacing"));
+        windowSizeControl.setAlignment(Pos.CENTER_LEFT);
+        windowSizeControl.getChildren().addAll(windowSizeLabel, windowSizeCombo);
+        
+        // Create HBox for server settings (empty space + button to align with other controls)
+        HBox serverControl = new HBox(get("SettingsServerSpacing"));
+        serverControl.setAlignment(Pos.CENTER_LEFT);
+        Region spacer = new Region();
+        spacer.setPrefWidth(windowSizeLabel.getPrefWidth());
+        serverControl.getChildren().addAll(spacer, serverConfigButton);
+        
+        // Create VBox for all controls with smaller spacing
+        VBox allControls = new VBox(12);
+        allControls.setAlignment(Pos.CENTER_LEFT);
+        allControls.getChildren().addAll(volumeControl, windowSizeControl, serverControl);
 
         volumeSlider.valueProperty().addListener((_, _, newValue) -> {
             volume = newValue.doubleValue();
@@ -370,7 +384,7 @@ public class MainMenu extends Application {
         StackPane root = new StackPane();
 
         VBox settingsLayout = new VBox(20);
-        settingsLayout.getChildren().addAll(volumeControls, windowControls, serverConfigButton);
+        settingsLayout.getChildren().add(allControls);
         settingsLayout.setStyle("-fx-background-color: #333; " +
                 "-fx-border-color: #ffd700; " +
                 "-fx-border-width: 2px; " +

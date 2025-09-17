@@ -1324,8 +1324,8 @@ public class SlotMachineGUI extends Application {
         double centerX = bounds.getCenterX();
         double centerY = bounds.getCenterY();
 
-        // Create 15-20 particles per symbol
-        int particleCount = 15 + random.nextInt(5);
+        // Create 25-35 particles per symbol for more explosion effect
+        int particleCount = 25 + random.nextInt(10);
 
         for (int i = 0; i < particleCount; i++) {
             // Random sparkle size
@@ -1410,22 +1410,14 @@ public class SlotMachineGUI extends Application {
                 scaleUp.setToX(1.2);
                 scaleUp.setToY(1.2);
 
-                // Pulsating glow effect
-                Timeline glowPulse = new Timeline(
-                        new KeyFrame(Duration.ZERO, new KeyValue(glow.radiusProperty(), 10)),
-                        new KeyFrame(Duration.millis(200), new KeyValue(glow.radiusProperty(), 30)),
-                        new KeyFrame(Duration.millis(400), new KeyValue(glow.radiusProperty(), 15))
-                );
-                glowPulse.setCycleCount(2);
-
                 // Apply the glow effect
                 symbol.setEffect(glow);
 
                 // Create sparkle particles around the symbol
                 createSparkleEffect(particleEffects, symbol);
 
-                // Combine scale and rotate with parallel transition
-                ParallelTransition grow = new ParallelTransition(scaleUp, glowPulse);
+                // Scale animation only
+                ParallelTransition grow = new ParallelTransition(scaleUp);
 
                 // Final fade out
                 FadeTransition fadeOut = new FadeTransition(Duration.millis(300), symbol);

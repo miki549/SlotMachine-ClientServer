@@ -979,7 +979,6 @@ public class SlotMachineGUI extends Application {
                     if (!success) {
                         // Ha nem sikerült a szerveren, visszavonjuk a lokális változásokat
                         game.resetSpinPayout();
-                        showErrorMessage("Hiba történt a pörgetés feldolgozása során!");
                         spinsRemaining--;
                         PauseTransition pause = new PauseTransition(Duration.millis(500));
                         pause.setOnFinished(_ -> processNextStep());
@@ -1674,13 +1673,6 @@ public class SlotMachineGUI extends Application {
         Funtions.centerStage(bonusResultsStage, root.getScene());
     }
 
-    private void showErrorMessage(String message) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle("Hiba");
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
-    }
 
     private void startBalancePolling() {
         if (game != null && game.isOnline()) {

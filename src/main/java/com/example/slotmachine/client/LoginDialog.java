@@ -76,7 +76,7 @@ public class LoginDialog {
         addSoundToWidget(cancelButton);
 
         Label statusLabel = new Label();
-        statusLabel.setStyle(String.format("-fx-text-fill: red; -fx-font-size: %dpx;", get("LoginStatusFontSize")));
+        statusLabel.setStyle(String.format("-fx-text-fill: rgb(255,71,74); -fx-font-size: %dpx;", get("LoginStatusFontSize")));
         statusLabel.setWrapText(true);
         statusLabel.setMaxWidth(get("LoginStatusMaxWidth")); // Allow text wrapping for long messages
         statusLabel.setAlignment(Pos.CENTER); // Center align the text
@@ -93,11 +93,13 @@ public class LoginDialog {
 
             if (username.isEmpty() || password.isEmpty()) {
                 statusLabel.setText("Please fill in all fields!");
+                statusLabel.setStyle(String.format("-fx-text-fill: rgb(255,71,74); -fx-font-size: %dpx;", get("LoginStatusFontSize")));
                 return;
             }
 
             loginButton.setDisable(true);
             statusLabel.setText("Logging in...");
+            statusLabel.setStyle(String.format("-fx-text-fill: rgb(135, 206, 235); -fx-font-size: %dpx;", get("LoginStatusFontSize")));
 
             // Háttérben futtatjuk a hálózati hívást
             new Thread(() -> {
@@ -110,7 +112,8 @@ public class LoginDialog {
                     });
                 } catch (Exception ex) {
                     Platform.runLater(() -> {
-                        statusLabel.setText("Login failed: " + ex.getMessage());
+                        statusLabel.setText(ex.getMessage());
+                        statusLabel.setStyle(String.format("-fx-text-fill: rgb(255,71,74); -fx-font-size: %dpx;", get("LoginStatusFontSize")));
                         loginButton.setDisable(false);
                     });
                 }
@@ -123,11 +126,13 @@ public class LoginDialog {
 
             if (username.isEmpty() || password.isEmpty()) {
                 statusLabel.setText("Please fill in all fields!");
+                statusLabel.setStyle(String.format("-fx-text-fill: rgb(255,71,74); -fx-font-size: %dpx;", get("LoginStatusFontSize")));
                 return;
             }
 
             registerButton.setDisable(true);
             statusLabel.setText("Registering...");
+            statusLabel.setStyle(String.format("-fx-text-fill: rgb(135, 206, 235); -fx-font-size: %dpx;", get("LoginStatusFontSize")));
 
             new Thread(() -> {
                 try {
@@ -135,7 +140,7 @@ public class LoginDialog {
                     
                     Platform.runLater(() -> {
                         statusLabel.setText("Registration successful! Please log in now.");
-                        statusLabel.setStyle("-fx-text-fill: green; -fx-font-size: 12px;");
+                        statusLabel.setStyle(String.format("-fx-text-fill: rgb(152,255,152); -fx-font-size: %dpx;", get("LoginStatusFontSize")));
                         registerButton.setDisable(false);
                         usernameField.clear();
                         passwordField.clear();
@@ -143,8 +148,8 @@ public class LoginDialog {
                     });
                 } catch (Exception ex) {
                     Platform.runLater(() -> {
-                        statusLabel.setText("Registration failed: " + ex.getMessage());
-                        statusLabel.setStyle("-fx-text-fill: red; -fx-font-size: 12px;");
+                        statusLabel.setText(ex.getMessage());
+                        statusLabel.setStyle(String.format("-fx-text-fill: rgb(255,71,74); -fx-font-size: %dpx;", get("LoginStatusFontSize")));
                         registerButton.setDisable(false);
                     });
                 }

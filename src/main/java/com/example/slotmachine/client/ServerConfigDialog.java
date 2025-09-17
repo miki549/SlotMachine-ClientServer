@@ -113,7 +113,7 @@ public class ServerConfigDialog {
         
         // Status label
         Label statusLabel = new Label();
-        statusLabel.setStyle(String.format("-fx-text-fill: red; -fx-font-size: %dpx;", get("ServerConfigStatusFontSize")));
+        statusLabel.setStyle(String.format("-fx-text-fill: rgb(135, 206, 235); -fx-font-size: %dpx;", get("ServerConfigStatusFontSize")));
         statusLabel.setWrapText(true);
         statusLabel.setMaxWidth(get("ServerConfigStatusMaxWidth"));
         statusLabel.setAlignment(Pos.CENTER);
@@ -144,30 +144,36 @@ public class ServerConfigDialog {
         mainLayout.setStyle("-fx-background-color: rgba(0, 0, 0, 0.9); -fx-background-radius: 10;");
         mainLayout.setEffect(new DropShadow(get("ServerConfigDropShadowRadius"), Color.BLACK));
         
-        // Create rounded corners
-        Rectangle clip = new Rectangle(get("ServerConfigDialogWidth"), get("ServerConfigDialogHeight"));
-        clip.setArcWidth(get("ServerConfigClipArcWidth"));
-        clip.setArcHeight(get("ServerConfigClipArcHeight"));
-        mainLayout.setClip(clip);
+        // Create rounded corners for main layout
+        Rectangle mainClip = new Rectangle(get("ServerConfigDialogWidth"), get("ServerConfigDialogHeight"));
+        mainClip.setArcWidth(get("ServerConfigClipArcWidth"));
+        mainClip.setArcHeight(get("ServerConfigClipArcHeight"));
+        mainLayout.setClip(mainClip);
         
         // Stack pane for close button positioning
         StackPane root = new StackPane(mainLayout, closeButton);
         StackPane.setAlignment(closeButton, Pos.TOP_RIGHT);
         StackPane.setMargin(closeButton, new Insets(10, 10, 0, 0));
         
+        // Create a separate clip for the root StackPane to ensure rounded corners
+        Rectangle rootClip = new Rectangle(get("ServerConfigDialogWidth"), get("ServerConfigDialogHeight"));
+        rootClip.setArcWidth(get("ServerConfigClipArcWidth"));
+        rootClip.setArcHeight(get("ServerConfigClipArcHeight"));
+        root.setClip(rootClip);
+        
         testButton.setOnAction(_ -> {
             String testUrl = serverField.getText().trim();
             if (testUrl.isEmpty()) {
                 statusLabel.setText("❌ Please enter server URL!");
-                statusLabel.setStyle(String.format("-fx-text-fill: red; -fx-font-size: %dpx;", get("ServerConfigStatusFontSize")));
+                statusLabel.setStyle(String.format("-fx-text-fill: rgb(255,71,74); -fx-font-size: %dpx;", get("ServerConfigStatusFontSize")));
                 return;
             }
             
             statusLabel.setText("🔄 Testing connection...");
-            statusLabel.setStyle(String.format("-fx-text-fill: blue; -fx-font-size: %dpx;", get("ServerConfigStatusFontSize")));
+            statusLabel.setStyle(String.format("-fx-text-fill: rgb(135, 206, 235); -fx-font-size: %dpx;", get("ServerConfigStatusFontSize")));
             
             // Aszinkron tesztelés
-            Thread testThread = new Thread(() -> {
+            Thread testThread = new Thread(() -> { 
                 try {
                     ApiClient testClient = new ApiClient(testUrl);
                     boolean connected = testClient.isConnected();
@@ -175,16 +181,16 @@ public class ServerConfigDialog {
                     Platform.runLater(() -> {
                         if (connected) {
                             statusLabel.setText("✅ Connection successful!");
-                            statusLabel.setStyle(String.format("-fx-text-fill: green; -fx-font-size: %dpx;", get("ServerConfigStatusFontSize")));
+                            statusLabel.setStyle(String.format("-fx-text-fill: rgb(152,255,152); -fx-font-size: %dpx;", get("ServerConfigStatusFontSize")));
                         } else {
                             statusLabel.setText("❌ Failed to connect to server!");
-                            statusLabel.setStyle(String.format("-fx-text-fill: red; -fx-font-size: %dpx;", get("ServerConfigStatusFontSize")));
+                            statusLabel.setStyle(String.format("-fx-text-fill: rgb(255,71,74); -fx-font-size: %dpx;", get("ServerConfigStatusFontSize")));
                         }
                     });
                 } catch (Exception ex) {
                     Platform.runLater(() -> {
                         statusLabel.setText("❌ Error: " + ex.getMessage());
-                        statusLabel.setStyle(String.format("-fx-text-fill: red; -fx-font-size: %dpx;", get("ServerConfigStatusFontSize")));
+                        statusLabel.setStyle(String.format("-fx-text-fill: rgb(255,71,74); -fx-font-size: %dpx;", get("ServerConfigStatusFontSize")));
                     });
                 }
             });
@@ -204,7 +210,7 @@ public class ServerConfigDialog {
                 dialog.close();
             } else {
                 statusLabel.setText("❌ Please enter server URL!");
-                statusLabel.setStyle(String.format("-fx-text-fill: red; -fx-font-size: %dpx;", get("ServerConfigStatusFontSize")));
+                statusLabel.setStyle(String.format("-fx-text-fill: rgb(255,71,74); -fx-font-size: %dpx;", get("ServerConfigStatusFontSize")));
             }
         });
         

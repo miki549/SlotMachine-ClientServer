@@ -32,6 +32,9 @@ public class ServerConfigDialog {
     private MediaPlayer buttonClickSound;
     private double volume;
     
+    // Static variable to track if server config dialog is open
+    private static boolean isServerConfigDialogOpen = false;
+    
     public ServerConfigDialog() {
         this(0.2); // Default volume for backward compatibility
     }
@@ -43,6 +46,11 @@ public class ServerConfigDialog {
         
         // Initialize button click sound with the provided volume
         buttonClickSound = ResourceLoader.loadSound("buttonclick1.mp3", volume);
+    }
+    
+    // Static method to check if server config dialog is open
+    public static boolean isServerConfigDialogOpen() {
+        return isServerConfigDialogOpen;
     }
     
     private String getPreferredDefaultUrl() {
@@ -63,10 +71,31 @@ public class ServerConfigDialog {
     }
     
     public String showAndWait(Stage owner) {
+        // Check if server config dialog is already open
+        if (isServerConfigDialogOpen) {
+            return null;
+        }
+        
+        // Set flag to indicate server config dialog is open
+        isServerConfigDialogOpen = true;
+        
         Stage dialog = new Stage();
-        dialog.initModality(Modality.APPLICATION_MODAL);
+        dialog.initModality(Modality.NONE);
         dialog.initOwner(owner);
         dialog.initStyle(StageStyle.TRANSPARENT);
+        
+        // Make dialog follow parent window movement
+        owner.xProperty().addListener((obs, oldVal, newVal) -> {
+            if (dialog.isShowing()) {
+                dialog.setX(owner.getX() + (owner.getWidth() - dialog.getWidth()) / 2);
+            }
+        });
+        
+        owner.yProperty().addListener((obs, oldVal, newVal) -> {
+            if (dialog.isShowing()) {
+                dialog.setY(owner.getY() + (owner.getHeight() - dialog.getHeight()) / 2 + 20);
+            }
+        });
         dialog.setResizable(false);
         
         // Title label
@@ -233,6 +262,18 @@ public class ServerConfigDialog {
         scene.getStylesheets().add("file:src/main/resources/configs/normalstyle.css");
         
         dialog.setScene(scene);
+        
+        // Position dialog slightly lower than center
+        dialog.setOnShown(e -> {
+            dialog.setX(owner.getX() + (owner.getWidth() - dialog.getWidth()) / 2);
+            dialog.setY(owner.getY() + (owner.getHeight() - dialog.getHeight()) / 2 + 20); // 50px lower than center
+        });
+        
+        // Add listener to reset flag when dialog is closed
+        dialog.setOnHidden(e -> {
+            isServerConfigDialogOpen = false;
+        });
+        
         dialog.showAndWait();
         
         return serverUrl;

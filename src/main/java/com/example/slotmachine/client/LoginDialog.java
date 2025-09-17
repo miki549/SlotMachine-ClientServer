@@ -2,6 +2,7 @@ package com.example.slotmachine.client;
 
 import com.example.slotmachine.server.dto.LoginResponse;
 import com.example.slotmachine.ConfigManager;
+import com.example.slotmachine.MainMenu;
 import com.example.slotmachine.ResourceLoader;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -26,6 +27,9 @@ public class LoginDialog {
     private LoginResponse loginResponse;
     private boolean cancelled = false;
     private MediaPlayer buttonClickSound;
+    
+    // Static variable to track if login dialog is open
+    private static boolean isLoginDialogOpen = false;
 
     public LoginDialog(ApiClient apiClient) {
         this.apiClient = apiClient;
@@ -33,12 +37,48 @@ public class LoginDialog {
         // Initialize button click sound with fixed volume 0.2
         buttonClickSound = ResourceLoader.loadSound("buttonclick1.mp3", 0.2);
     }
+    
+    // Static method to check if login dialog is open
+    public static boolean isLoginDialogOpen() {
+        return isLoginDialogOpen;
+    }
 
     public LoginResponse showAndWait(Stage parentStage) {
+        // Check if login dialog is already open
+        if (isLoginDialogOpen) {
+            return null;
+        }
+        
+        // Check if server config dialog is open - if so, don't allow login to open
+        if (ServerConfigDialog.isServerConfigDialogOpen()) {
+            return null;
+        }
+        
+        // Check if settings dialog is open - if so, don't allow login to open
+        if (MainMenu.isSettingsDialogOpen()) {
+            return null;
+        }
+        
+        // Set flag to indicate login dialog is open
+        isLoginDialogOpen = true;
+        
         Stage loginStage = new Stage();
         loginStage.initStyle(StageStyle.TRANSPARENT);
-        loginStage.initModality(Modality.APPLICATION_MODAL);
+        loginStage.initModality(Modality.NONE);
         loginStage.initOwner(parentStage);
+        
+        // Make dialog follow parent window movement
+        parentStage.xProperty().addListener((obs, oldVal, newVal) -> {
+            if (loginStage.isShowing()) {
+                loginStage.setX(parentStage.getX() + (parentStage.getWidth() - loginStage.getWidth()) / 2);
+            }
+        });
+        
+        parentStage.yProperty().addListener((obs, oldVal, newVal) -> {
+            if (loginStage.isShowing()) {
+                loginStage.setY(parentStage.getY() + (parentStage.getHeight() - loginStage.getHeight()) / 2);
+            }
+        });
 
         // UI elements
         Label titleLabel = new Label("Login");
@@ -205,6 +245,11 @@ public class LoginDialog {
 
         // Fókusz beállítása
         Platform.runLater(usernameField::requestFocus);
+        
+        // Add listener to reset flag when dialog is closed
+        loginStage.setOnHidden(e -> {
+            isLoginDialogOpen = false;
+        });
 
         loginStage.showAndWait();
 

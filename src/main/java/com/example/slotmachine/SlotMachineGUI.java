@@ -126,6 +126,16 @@ public class SlotMachineGUI extends Application {
             return;
         }
         
+        // Initialize game with login response
+        initializeGameWithLogin(primaryStage, loginResponse);
+    }
+    
+    public void startWithLogin(Stage primaryStage, ApiClient apiClient, LoginResponse loginResponse) {
+        this.apiClient = apiClient;
+        initializeGameWithLogin(primaryStage, loginResponse);
+    }
+    
+    private void initializeGameWithLogin(Stage primaryStage, LoginResponse loginResponse) {
         // SlotMachine inicializálása online módban
         game = new SlotMachine(apiClient);
         
@@ -434,7 +444,7 @@ public class SlotMachineGUI extends Application {
         }
         autoSpinSettingsStage = new Stage();
         autoSpinSettingsStage.initStyle(StageStyle.TRANSPARENT);
-        autoSpinSettingsStage.initModality(Modality.APPLICATION_MODAL);
+        autoSpinSettingsStage.initModality(Modality.NONE);
         autoSpinSettingsStage.initOwner(primaryStage);
 
         CheckBox quickSpinCheckBox = new CheckBox("Quick Spin");
@@ -556,7 +566,7 @@ public class SlotMachineGUI extends Application {
         }
         volumeSettingsStage = new Stage();
         volumeSettingsStage.initStyle(StageStyle.TRANSPARENT);
-        volumeSettingsStage.initModality(Modality.APPLICATION_MODAL);
+        volumeSettingsStage.initModality(Modality.NONE);
         volumeSettingsStage.initOwner(primaryStage);
 
         // Százalékérték címke
@@ -695,7 +705,7 @@ public class SlotMachineGUI extends Application {
 
             double duration = sound.getDuration().toSeconds();
             Stage popupStage = new Stage();
-            popupStage.initModality(Modality.APPLICATION_MODAL);
+            popupStage.initModality(Modality.WINDOW_MODAL);
             popupStage.initStyle(StageStyle.TRANSPARENT);
 
             VBox layout = new VBox(10);
@@ -808,7 +818,7 @@ public class SlotMachineGUI extends Application {
 
         lowBalanceStage = new Stage();
         lowBalanceStage.initStyle(StageStyle.TRANSPARENT);
-        lowBalanceStage.initModality(Modality.APPLICATION_MODAL);
+        lowBalanceStage.initModality(Modality.NONE);
         lowBalanceStage.initOwner(primaryStage);
 
         Label messageLabel = new Label("Insufficient funds!");
@@ -1585,7 +1595,7 @@ public class SlotMachineGUI extends Application {
     private void showRetriggerPopup() {
         Stage popupStage = new Stage();
         popupStage.initStyle(StageStyle.TRANSPARENT);
-        popupStage.initModality(Modality.APPLICATION_MODAL);
+            popupStage.initModality(Modality.NONE);
         popupStage.initOwner(root.getScene().getWindow());
 
         VBox layout = new VBox(20);
@@ -1632,7 +1642,7 @@ public class SlotMachineGUI extends Application {
 
         bonusResultsStage = new Stage();
         bonusResultsStage.initStyle(StageStyle.TRANSPARENT);
-        bonusResultsStage.initModality(Modality.APPLICATION_MODAL);
+        bonusResultsStage.initModality(Modality.NONE);
         bonusResultsStage.initOwner(root.getScene().getWindow());
 
         VBox layout = new VBox(20);
@@ -1739,7 +1749,7 @@ public class SlotMachineGUI extends Application {
 
         userBannedStage = new Stage();
         userBannedStage.initStyle(StageStyle.TRANSPARENT);
-        userBannedStage.initModality(Modality.APPLICATION_MODAL);
+        userBannedStage.initModality(Modality.NONE);
         userBannedStage.initOwner(primaryStage);
 
         Label messageLabel = new Label("Account Banned!");
@@ -1837,7 +1847,7 @@ public class SlotMachineGUI extends Application {
 
         userDeletedStage = new Stage();
         userDeletedStage.initStyle(StageStyle.TRANSPARENT);
-        userDeletedStage.initModality(Modality.APPLICATION_MODAL);
+        userDeletedStage.initModality(Modality.NONE);
         userDeletedStage.initOwner(primaryStage);
 
         Label messageLabel = new Label("Account Deleted!");

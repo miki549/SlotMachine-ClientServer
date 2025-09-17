@@ -1,6 +1,10 @@
 package com.example.slotmachine;
 
 import com.example.slotmachine.client.ServerConfigDialog;
+import com.example.slotmachine.client.LoginDialog;
+import com.example.slotmachine.client.ApiClient;
+import com.example.slotmachine.server.dto.LoginResponse;
+import java.util.prefs.Preferences;
 import javafx.animation.FadeTransition;
 import javafx.animation.Timeline;
 import javafx.animation.KeyFrame;
@@ -35,6 +39,9 @@ public class MainMenu extends Application {
 
     private Stage settingsStage;
     private static MediaPlayer mainMenuMusic;
+    
+    // Static variable to track if settings dialog is open
+    private static boolean isSettingsDialogOpen = false;
     private MediaPlayer buttonClickSound;
     private MediaPlayer backgroundVideo, introVideo, loopVideo;
     private static boolean introPlayed = false;
@@ -214,7 +221,7 @@ public class MainMenu extends Application {
 
         playButton.setStyle(String.format("-fx-font-size: %dpx;-fx-padding: %dpx %dpx;", get("MMPlayButtonFontSize"),get("MMPlayButtonPaddingY"),get("MMPlayButtonPaddingX")));
         playButton.setPrefSize(ConfigManager.get("MMPlayButtonWidth"), ConfigManager.get("MMPlayButtonHeight"));
-        playButton.setOnAction(_ -> transitionToGame(primaryStage));
+        playButton.setOnAction(_ -> showLoginDialog(primaryStage));
 
         Button settingsButton = new Button("Settings");
         settingsButton.getStyleClass().add("settings-button");
@@ -251,14 +258,22 @@ public class MainMenu extends Application {
     }
 
     private void showSettings(Stage primaryStage) {  // Add primaryStage parameter
+        // Check if login dialog is open - if so, don't allow settings to open
+        if (LoginDialog.isLoginDialogOpen()) {
+            return;
+        }
+        
         if(settingsStage != null) {
             settingsStage.show();
             settingsStage.toFront();
             return;
         }
+        
+        // Set flag to indicate settings dialog is open
+        isSettingsDialogOpen = true;
         settingsStage = new Stage();
         settingsStage.initStyle(StageStyle.TRANSPARENT);
-        settingsStage.initModality(Modality.APPLICATION_MODAL);
+        settingsStage.initModality(Modality.NONE);
         settingsStage.initOwner(primaryStage);  // Set the owner stage
 
         Label percentageLabel = new Label(String.format("Volume: %d%%", (int) (mainMenuMusic.getVolume() * 100)));
@@ -446,18 +461,55 @@ public class MainMenu extends Application {
         fadeIn.play();
 
         settingsStage.setScene(settingsScene);
+        
+        // Add listener to reset flag when dialog is closed
+        settingsStage.setOnHidden(e -> {
+            isSettingsDialogOpen = false;
+        });
+        
         settingsStage.show();
 
         // Center the settings window after it's visible
         Platform.runLater(() -> Funtions.centerStage(settingsStage, primaryStage));
     }
 
-    private void transitionToGame(Stage primaryStage) {
+    private void showLoginDialog(Stage primaryStage) {
+        // Check if login dialog is already open - if so, don't allow another one
+        if (LoginDialog.isLoginDialogOpen()) {
+            return;
+        }
+        
+        // Check if settings dialog is open - if so, don't allow login to open
+        if (isSettingsDialogOpen) {
+            return;
+        }
+        
+        // Check if server config dialog is open - if so, don't allow login to open
+        if (ServerConfigDialog.isServerConfigDialogOpen()) {
+            return;
+        }
+        
+        // Get server configuration without creating dialog
+        String serverUrl = getServerUrlFromPreferences();
+        ApiClient apiClient = new ApiClient(serverUrl);
+        
+        // Show login dialog
+        LoginDialog loginDialog = new LoginDialog(apiClient);
+        LoginResponse loginResponse = loginDialog.showAndWait(primaryStage);
+        
+        if (loginResponse != null) {
+            // Successful login - transition to game
+            transitionToGame(primaryStage, apiClient, loginResponse);
+        }
+        // If loginResponse is null, user cancelled - stay in main menu
+    }
+
+    private void transitionToGame(Stage primaryStage, ApiClient apiClient, LoginResponse loginResponse) {
         // Don't stop the music here - let SlotMachineGUI handle it after successful login
         try {
             SlotMachineGUI slotMachineGUI = new SlotMachineGUI();
             slotMachineGUI.setInitialVolume(volume);
-            slotMachineGUI.start(primaryStage);
+            slotMachineGUI.startWithLogin(primaryStage, apiClient, loginResponse);
         } catch (Exception e) {
             System.err.println("Error starting SlotMachineGUI: " + e.getMessage());
             e.printStackTrace();
@@ -476,6 +528,17 @@ public class MainMenu extends Application {
             });
             fadeOut.play();
         }
+    }
+    
+    // Static method to check if settings dialog is open
+    public static boolean isSettingsDialogOpen() {
+        return isSettingsDialogOpen;
+    }
+    
+    private String getServerUrlFromPreferences() {
+        Preferences prefs = Preferences.userNodeForPackage(ServerConfigDialog.class);
+        String serverUrl = prefs.get("server_url", "http://46.139.211.149:8081");
+        return serverUrl;
     }
 
     @Override

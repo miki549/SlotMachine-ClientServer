@@ -151,8 +151,13 @@ public class SlotMachineGUI extends Application {
         // Balance update listener beállítása
         game.setBalanceUpdateListener(newBalance -> {
             Platform.runLater(() -> {
-                balanceText.setText("Credit: $" + (int)newBalance);
-                System.out.println("Balance real-time frissítés: $" + newBalance);
+                // Csak akkor frissítjük a balance text-et, ha nem pörget a játékos
+                if (!game.isSpinning()) {
+                    balanceText.setText("Credit: $" + (int)newBalance);
+                    System.out.println("Balance real-time frissítés: $" + newBalance);
+                } else {
+                    System.out.println("Balance frissítés kihagyva - pörgetés folyamatban: $" + newBalance);
+                }
             });
         });
         
@@ -943,6 +948,7 @@ public class SlotMachineGUI extends Application {
     private void processNextStep() {
         if (spinsRemaining <= 0 || !isSpinning || isUserBanned) {
             isSpinning = false;
+            game.setSpinning(false); // Leállítjuk a spinning flag-et
             isAutospinStopping = false; // Reset the stopping flag
             designAutoSpinButton();
             disableButtons(false);
@@ -958,6 +964,7 @@ public class SlotMachineGUI extends Application {
         if (game.getBalance() < game.getBet()) {
             Platform.runLater(() -> showLowBalanceMessage((Stage) root.getScene().getWindow()));
             isSpinning = false;
+            game.setSpinning(false); // Leállítjuk a spinning flag-et
             isAutospinStopping = false; // Reset the stopping flag
             designAutoSpinButton();
             disableButtons(false);
@@ -969,6 +976,13 @@ public class SlotMachineGUI extends Application {
         if (!isBonusMode) {
             disableButtons(true);
             
+            // Beállítjuk, hogy pörgetés van folyamatban
+            game.setSpinning(true);
+            
+            // Levonjuk a tétet a spin elején
+            game.decreaseBalance(game.getBet());
+            balanceText.setText("Credit: $" + game.getBalance());
+            
             // Online módban előbb végezzük el a spint, majd küldjük a szerverre
             performSpin(() -> checkAndProcessClusters(() -> {
                 double spinPayout = game.getSpinPayout();
@@ -978,19 +992,22 @@ public class SlotMachineGUI extends Application {
                     boolean success = game.processSpinOnServer(game.getBet(), spinPayout);
                     if (!success) {
                         // Ha nem sikerült a szerveren, visszavonjuk a lokális változásokat
+                        game.increaseBalance(game.getBet()); // Visszaadjuk a tétet
                         game.resetSpinPayout();
+                        game.setSpinning(false); // Spin vége
+                        balanceText.setText("Credit: $" + game.getBalance());
                         spinsRemaining--;
                         PauseTransition pause = new PauseTransition(Duration.millis(500));
                         pause.setOnFinished(_ -> processNextStep());
                         pause.play();
                         return;
                     }
-                } else {
-                    // Offline mód - eredeti logika
-                    game.decreaseBalance(game.getBet());
                 }
                 
+                // A szerver már hozzáadta a nyereményt, nem kell lokálisan hozzáadni
+                
                 game.resetSpinPayout();
+                game.setSpinning(false); // Spin vége
                 balanceText.setText("Credit: $" + game.getBalance());
 
                 if (spinPayout > 0) {
@@ -1026,11 +1043,13 @@ public class SlotMachineGUI extends Application {
             // Bonus mode spin
             if (game.hasFreeSpins()) {
                 disableButtons(true);
+                game.setSpinning(true); // Beállítjuk, hogy pörgetés van folyamatban
                 game.decreaseFreeSpins();
                 performSpin(() -> checkAndProcessClusters(() -> {
                     double spinPayout = game.getSpinPayout();
                     game.resetSpinPayout();
                     game.addBonusPayout(spinPayout);
+                    game.setSpinning(false); // Spin vége
 
                     if (spinPayout > 0) {
                         int bet = game.getBet();
@@ -1200,7 +1219,6 @@ public class SlotMachineGUI extends Application {
                 });
             });
             pause.play();
-            balanceText.setText("Credit: $" + game.getBalance());
         } else {
             winText.setVisible(false);
             onComplete.run();
@@ -1678,22 +1696,30 @@ public class SlotMachineGUI extends Application {
         if (game != null && game.isOnline()) {
             // Timer létrehozása 5 másodperces intervallummal
             balancePollingTimer = new Timeline(new KeyFrame(Duration.seconds(5), _ -> {
-                // Háttérben futtatjuk a balance lekérést, hogy ne blokkoljuk a UI-t
-                new Thread(() -> {
-                    try {
-                        game.updateBalanceFromServerWithNotification();
-                        // Check for username changes
-                        updateUsernameFromServer();
-                    } catch (Exception e) {
-                        System.err.println("Balance polling error: " + e.getMessage());
-                    }
-                }).start();
+                // Csak akkor pollolunk, ha nem pörget a játékos
+                if (!game.isSpinning()) {
+                    // Kis késleltetés a spin után, hogy ne írja felül a lokális balance-t
+                    PauseTransition delay = new PauseTransition(Duration.seconds(2));
+                    delay.setOnFinished(_ -> {
+                        // Háttérben futtatjuk a balance lekérést, hogy ne blokkoljuk a UI-t
+                        new Thread(() -> {
+                            try {
+                                game.updateBalanceFromServerWithNotification();
+                                // Check for username changes
+                                updateUsernameFromServer();
+                            } catch (Exception e) {
+                                System.err.println("Balance polling error: " + e.getMessage());
+                            }
+                        }).start();
+                    });
+                    delay.play();
+                }
             }));
             
             balancePollingTimer.setCycleCount(Timeline.INDEFINITE);
             balancePollingTimer.play();
             
-            System.out.println("Balance polling indítva (5 másodperces intervallum)");
+            System.out.println("Balance polling indítva (5 másodperces intervallum, csak amikor nem pörget, 2s késleltetéssel)");
         }
     }
 

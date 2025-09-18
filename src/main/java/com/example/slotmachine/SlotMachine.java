@@ -18,7 +18,7 @@ public class SlotMachine {
     private int remainingFreeSpins = 0;
     private double bonusPayout = 0;
     private final ApiClient apiClient;
-    private boolean isOnline = false;
+    private boolean isSpinning = false;
     private BalanceUpdateListener balanceUpdateListener;
     private UserBannedListener userBannedListener;
     private UserUnbannedListener userUnbannedListener;
@@ -45,138 +45,38 @@ public class SlotMachine {
     private int totalBets = 0;
     private double totalPayouts = 0;
     public SlotMachine(ApiClient apiClient) {
+        if (apiClient == null) {
+            throw new IllegalArgumentException("ApiClient cannot be null - this is an online-only game");
+        }
         this.apiClient = apiClient;
-        this.isOnline = apiClient != null;
-        if (!isOnline) {
-            // Offline mód - lokális balance betöltése
-            loadBalance();
-        }
     }
 
-    public SlotMachine() {
-        this(null); // Backward compatibility - offline mode
-    }
-
-    // Save the balance with hash (only for offline mode)
-    private void saveBalance() {
-        if (isOnline) {
-            return; // Online módban a szerver kezeli a balance-t
-        }
-        
-        try {
-            String balanceStr = String.valueOf(balance);
-            String hash = calculateHash(balanceStr);
-            String dataToSave = balanceStr + ":" + hash;
-
-            java.nio.file.Files.write(java.nio.file.Paths.get("balance.dat"), dataToSave.getBytes());
-        } catch (java.io.IOException e) {
-            System.err.println("Error saving balance: " + e.getMessage());
-        }
-    }
-    
-    // Load the balance and verify hash (only for offline mode)
-    private void loadBalance() {
-        try {
-            if (!java.nio.file.Files.exists(java.nio.file.Paths.get("balance.dat"))) {
-                balance = DEFAULT_BALANCE;
-                saveBalance();
-                return;
-            }
-
-            String fileContent = new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("balance.dat")));
-            String[] parts = fileContent.split(":");
-
-            if (parts.length != 2) {
-                balance = DEFAULT_BALANCE;
-                saveBalance();
-                return;
-            }
-
-            String balanceStr = parts[0];
-            String storedHash = parts[1];
-            String calculatedHash = calculateHash(balanceStr);
-
-            if (!calculatedHash.equals(storedHash)) {
-                System.err.println("Balance file has been tampered with! Resetting to default.");
-                balance = DEFAULT_BALANCE;
-                saveBalance();
-                return;
-            }
-
-            balance = Double.parseDouble(balanceStr);
-        } catch (java.io.IOException e) {
-            System.err.println("Error loading balance: " + e.getMessage());
-            balance = DEFAULT_BALANCE;
-            saveBalance();
-        }
-    }
-
-    // Calculate SHA-256 hash of the balance
-    private String calculateHash(String input) {
-        try {
-            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(input.getBytes());
-            StringBuilder hexString = new StringBuilder();
-            for (byte b : hash) {
-                String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1) hexString.append('0');
-                hexString.append(hex);
-            }
-            return hexString.toString();
-        } catch (java.security.NoSuchAlgorithmException e) {
-            throw new RuntimeException("SHA-256 algorithm not found", e);
-        }
-    }
-    public void addBalance(int amount) {
-        if (!isOnline) {
-            this.balance += amount;
-            saveBalance();
-        }
-        // Online módban ezt nem használjuk - a szerver kezeli
-    }
 
     // Tét levonása és hozzáadása az összesített téthez
     public void decreaseBalance(int credit) {
-        if (!isOnline) {
-            this.balance -= credit;
-            this.totalBets += credit;  // Hozzáadjuk a tétek összegéhez
-            saveBalance();
-        }
-        // Online módban ezt a szerver kezeli
+        this.balance -= credit;
+        this.totalBets += credit;  // Hozzáadjuk a tétek összegéhez
+        // Balance azonnal frissül, a szerver is kezeli
     }
 
     public void increaseBalance(double credit) {
-        if (!isOnline) {
-            this.balance += credit;
-            saveBalance();
-        }
-        // Online módban ezt a szerver kezeli
+        this.balance += credit;
+        // Balance azonnal frissül, a szerver is kezeli
     }
 
     public int getBalance() {
-        if (isOnline) {
-            try {
-                BalanceResponse response = apiClient.getBalance();
-                this.balance = response.getBalance();
-                return (int) this.balance;
-            } catch (Exception e) {
-                System.err.println("Failed to get balance from server: " + e.getMessage());
-                return 0; // Vagy dobjon kivételt
-            }
-        }
-        return (int)balance;
+        return (int) this.balance;
     }
 
-    // Új metódus a szerver kommunikációhoz
+    // Szerver kommunikáció a spin feldolgozáshoz
     public boolean processSpinOnServer(int betAmount, double payout) {
-        if (!isOnline) {
-            return false;
-        }
-        
         try {
             SpinResponse response = apiClient.processSpin(betAmount, generatedSymbols, payout);
             if (response.isSuccess()) {
-                this.balance = response.getNewBalance();
+                // A szerver már hozzáadta a nyereményt, használjuk a szerver balance-t
+                double serverBalance = response.getNewBalance();
+                this.balance = serverBalance;
+                System.out.println("Balance updated from server after spin: $" + this.balance);
                 return true;
             } else {
                 System.err.println("Spin failed: " + response.getMessage());
@@ -196,15 +96,13 @@ public class SlotMachine {
     }
 
     public void updateBalanceFromServer() {
-        if (isOnline) {
-            try {
-                BalanceResponse response = apiClient.getBalance();
-                this.balance = response.getBalance();
-                System.out.println("Balance updated from server: $" + this.balance);
-            } catch (Exception e) {
-                System.err.println("Failed to update balance from server: " + e.getMessage());
-                e.printStackTrace();
-            }
+        try {
+            BalanceResponse response = apiClient.getBalance();
+            this.balance = response.getBalance();
+            System.out.println("Balance updated from server: $" + this.balance);
+        } catch (Exception e) {
+            System.err.println("Failed to update balance from server: " + e.getMessage());
+            e.printStackTrace();
         }
     }
     
@@ -213,7 +111,15 @@ public class SlotMachine {
     }
 
     public boolean isOnline() {
-        return isOnline && apiClient != null && apiClient.isConnected();
+        return apiClient != null && apiClient.isConnected();
+    }
+
+    public boolean isSpinning() {
+        return isSpinning;
+    }
+
+    public void setSpinning(boolean spinning) {
+        this.isSpinning = spinning;
     }
 
     public int getBet() {
@@ -351,7 +257,7 @@ private int generateNonScatterSymbol() {
             }
         }
         spinPayout += hitPayout;
-        increaseBalance(hitPayout);
+        // NEM adjuk hozzá itt a balance-hoz, mert a GUI-ban fogjuk hozzáadni
         totalPayouts += hitPayout;  // Nyeremény hozzáadása az összes nyereményhez
         return hitPayout;
     }
@@ -523,39 +429,37 @@ private int generateNonScatterSymbol() {
         this.balanceUpdateListener = listener;
     }
 
-    // Módosított updateBalanceFromServer - most értesíti a listener-t
+    // Balance frissítés szerverről értesítéssel
     public void updateBalanceFromServerWithNotification() {
-        if (isOnline) {
-            try {
-                BalanceResponse response = apiClient.getBalance();
-                double oldBalance = this.balance;
-                this.balance = response.getBalance();
-                
-                // Ha változott a balance, értesítjük a listener-t
-                if (oldBalance != this.balance && balanceUpdateListener != null) {
-                    balanceUpdateListener.onBalanceUpdated(this.balance);
+        try {
+            BalanceResponse response = apiClient.getBalance();
+            double oldBalance = this.balance;
+            this.balance = response.getBalance();
+            
+            // Ha változott a balance, értesítjük a listener-t
+            if (oldBalance != this.balance && balanceUpdateListener != null) {
+                balanceUpdateListener.onBalanceUpdated(this.balance);
+            }
+            
+            // If we successfully got balance, user is not banned anymore
+            if (userUnbannedListener != null) {
+                userUnbannedListener.onUserUnbanned();
+            }
+            
+            System.out.println("Balance updated from server: $" + this.balance);
+        } catch (Exception e) {
+            // Check if it's a user banned exception
+            if (e.getMessage() != null && e.getMessage().contains("Felhasználó tiltva lett")) {
+                if (userBannedListener != null) {
+                    userBannedListener.onUserBanned();
                 }
-                
-                // If we successfully got balance, user is not banned anymore
-                if (userUnbannedListener != null) {
-                    userUnbannedListener.onUserUnbanned();
+            } else if (e.getMessage() != null && e.getMessage().contains("Felhasználó törölve lett")) {
+                // Check if it's a user deleted exception
+                if (userDeletedListener != null) {
+                    userDeletedListener.onUserDeleted();
                 }
-                
-                System.out.println("Balance updated from server: $" + this.balance);
-            } catch (Exception e) {
-                // Check if it's a user banned exception
-                if (e.getMessage() != null && e.getMessage().contains("Felhasználó tiltva lett")) {
-                    if (userBannedListener != null) {
-                        userBannedListener.onUserBanned();
-                    }
-                } else if (e.getMessage() != null && e.getMessage().contains("Felhasználó törölve lett")) {
-                    // Check if it's a user deleted exception
-                    if (userDeletedListener != null) {
-                        userDeletedListener.onUserDeleted();
-                    }
-                } else {
-                    System.err.println("Failed to update balance from server: " + e.getMessage());
-                }
+            } else {
+                System.err.println("Failed to update balance from server: " + e.getMessage());
             }
         }
     }

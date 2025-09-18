@@ -29,7 +29,6 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Text;
-import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
@@ -91,6 +90,80 @@ public class SlotMachineGUI extends Application {
     private boolean isUserBanned = false;
     private boolean isAutospinStopping = false; // Flag to track when autospin is being stopped but last spin is still running
     private Timeline balancePollingTimer;
+    
+    // Cache frequently used config values to avoid repeated parsing
+    private int symbolSize;
+    private int gridSize;
+    private double symbolSizeHalf;
+    
+    // Reusable effects to avoid creating new objects
+    private DropShadow goldGlow;
+
+    // Cache frequently used config values
+    private int balanceTextFontSize;
+    private int betTextFontSize;
+    private int winTextFontSize;
+    private int spinButtonFontSize;
+    private int spinButtonPaddingY;
+    private int spinButtonPaddingX;
+    private int spinButtonWidth;
+    private int spinButtonHeight;
+    private int spinButtonTranslateY;
+    private int betButtonIconWidth;
+    private int betButtonIconHeight;
+    private int betButtonWidth;
+    private int betButtonHeight;
+    private int bonusButtonFontSize;
+    private int bonusButtonWidth;
+    private int bonusButtonHeight;
+    private int autoplaySettingsButtonFontSize;
+    private int autoPlaySettingsButtonPaddingY;
+    private int autoPlaySettingsButtonPaddingX;
+    private int autoplaySettingsButtonTranslateY;
+    private int autoPlaySettingsButtonWidth;
+    private int autoPlaySettingsButtonHeight;
+    private int autoplayIconWidth;
+    private int autoplayIconHeight;
+    private int volumeButtonWidth;
+    private int volumeButtonHeight;
+    private int volumeButtonPaddingV;
+    private int volumeButtonPaddingV1;
+    private int volumeButtonPaddingV2;
+    private int volumeButtonPaddingV3;
+    private int leftPanelSpacing;
+    private int leftPanelPaddingV;
+    private int leftPanelPaddingV1;
+    private int leftPanelPaddingV2;
+    private int leftPanelPaddingV3;
+    private int bottomLeftPanelSpacing;
+    private int bottomLeftPanelPaddingV;
+    private int bottomLeftPanelPaddingV1;
+    private int bottomLeftPanelPaddingV2;
+    private int bottomLeftPanelPaddingV3;
+    private int bottomRightPanelSpacing;
+    private int bottomRightPanelPaddingV;
+    private int bottomRightPanelPaddingV1;
+    private int bottomRightPanelPaddingV2;
+    private int bottomRightPanelPaddingV3;
+    private int betControlSpacing;
+    private int betTextWidth;
+    private int winTextPaddingV;
+    private int winTextPaddingV1;
+    private int winTextPaddingV2;
+    private int winTextPaddingV3;
+    private int gameWidth;
+    private int gameHeight;
+    private int bgImageWidth;
+    private int bgImageHeight;
+    private int slotGridTranslateX;
+    private int slotGridTranslateY;
+    private int clipCorrection;
+    private int clipTranslateY;
+    private int spinMoveToY;
+    private int spinMoveFromY;
+    private int updateMoveDownToY;
+    private int updateMoveBackFromY;
+    private int updateMoveBackToY;
 
     private static class SpinParameters {
         int pauseDelay,totalCycles,cycleDuration,transitionDuration;
@@ -106,6 +179,9 @@ public class SlotMachineGUI extends Application {
     }
     @Override
     public void start(Stage primaryStage) {
+        // Initialize cached values first
+        initializeCachedValues();
+        
         // Inicializálás - használjuk a mentett szerver konfigurációt
         ServerConfigDialog serverConfig = new ServerConfigDialog();
         String serverUrl = serverConfig.getServerUrl();
@@ -149,50 +225,42 @@ public class SlotMachineGUI extends Application {
         usernameText.setText(loginResponse.getUsername());
         
         // Balance update listener beállítása
-        game.setBalanceUpdateListener(newBalance -> {
-            Platform.runLater(() -> {
-                // Csak akkor frissítjük a balance text-et, ha nem pörget a játékos
-                if (!game.isSpinning()) {
-                    balanceText.setText("Credit: $" + (int)newBalance);
-                    System.out.println("Balance real-time frissítés: $" + newBalance);
-                } else {
-                    System.out.println("Balance frissítés kihagyva - pörgetés folyamatban: $" + newBalance);
-                }
-            });
-        });
+        game.setBalanceUpdateListener(newBalance -> Platform.runLater(() -> {
+            // Csak akkor frissítjük a balance text-et, ha nem pörget a játékos
+            if (!game.isSpinning()) {
+                balanceText.setText("Credit: $" + (int)newBalance);
+                System.out.println("Balance real-time frissítés: $" + newBalance);
+            } else {
+                System.out.println("Balance frissítés kihagyva - pörgetés folyamatban: $" + newBalance);
+            }
+        }));
         
         // User banned listener beállítása
-        game.setUserBannedListener(() -> {
-            Platform.runLater(() -> {
-                if (!isUserBanned) {
-                    isUserBanned = true;
-                    // Stop auto spinning if active
-                    autoSpinCount = 0;
-                    designAutoSpinButton();
-                    showUserBannedDialog(primaryStage);
-                }
-            });
-        });
-        
-        // User unbanned listener beállítása
-        game.setUserUnbannedListener(() -> {
-            Platform.runLater(() -> {
-                if (isUserBanned) {
-                    isUserBanned = false;
-                    System.out.println("User unbanned - resetting ban state");
-                }
-            });
-        });
-        
-        // User deleted listener beállítása
-        game.setUserDeletedListener(() -> {
-            Platform.runLater(() -> {
+        game.setUserBannedListener(() -> Platform.runLater(() -> {
+            if (!isUserBanned) {
+                isUserBanned = true;
                 // Stop auto spinning if active
                 autoSpinCount = 0;
                 designAutoSpinButton();
-                showUserDeletedDialog(primaryStage);
-            });
-        });
+                showUserBannedDialog(primaryStage);
+            }
+        }));
+        
+        // User unbanned listener beállítása
+        game.setUserUnbannedListener(() -> Platform.runLater(() -> {
+            if (isUserBanned) {
+                isUserBanned = false;
+                System.out.println("User unbanned - resetting ban state");
+            }
+        }));
+        
+        // User deleted listener beállítása
+        game.setUserDeletedListener(() -> Platform.runLater(() -> {
+            // Stop auto spinning if active
+            autoSpinCount = 0;
+            designAutoSpinButton();
+            showUserDeletedDialog(primaryStage);
+        }));
         
         // Polling timer indítása (5 másodpercenként)
         startBalancePolling();
@@ -415,34 +483,6 @@ public class SlotMachineGUI extends Application {
         Platform.runLater(root::requestFocus);
     }
 
-    // Credit fájl betöltés már nem szükséges online módban
-    // private void showCreditFileChooser(Stage primaryStage) {
-    //     FileChooser fileChooser = new FileChooser();
-    //     fileChooser.setTitle("Select Credit File");
-    //     fileChooser.getExtensionFilters().add(
-    //             new FileChooser.ExtensionFilter("Credit Files", "*.cred")
-    //     );
-    // 
-    //     // Alapértelmezett könyvtár beállítása
-    //     File defaultDirectory = new File(System.getProperty("user.home") + "/Downloads");
-    //     if (defaultDirectory.exists()) {
-    //         fileChooser.setInitialDirectory(defaultDirectory);
-    //     }
-    // 
-    //     File selectedFile = fileChooser.showOpenDialog(primaryStage);
-    // 
-    //     if (selectedFile != null) {
-    //         creditLoader.loadCreditFile(selectedFile, this::showDialog);
-    //         balanceText.setText("Credit: $" + game.getBalance());
-    //     }
-    // }
-
-    private void showDialog(String message, Alert.AlertType type) {
-        Alert alert = new Alert(type);
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
-    }
     private void showAutoplaySettingsDialog(Stage primaryStage) {
         if (autoSpinSettingsStage != null) {
             autoSpinSettingsStage.show();
@@ -852,16 +892,6 @@ public class SlotMachineGUI extends Application {
             Platform.runLater(root::requestFocus); //reset focus to main window
         });
 
-        // Online módban az admin adja hozzá a krediteket
-        // Button addCreditsButton = new Button("Add Credits");
-        // addCreditsButton.getStyleClass().add("dialog-save-button");
-        // addCreditsButton.setStyle(String.format("-fx-font-size: %dpx;", get("AudioSettingsLabelFontSize")));
-        // addCreditsButton.setOnAction(_ -> {
-        //     lowBalanceStage.close();
-        //     lowBalanceStage = null;
-        //     showCreditFileChooser(primaryStage);
-        // });
-
         VBox dialogVbox = new VBox(get("DialogVboxSpacing"), messageLabel, detailLabel, closeButton);
         dialogVbox.setAlignment(Pos.CENTER);
         dialogVbox.setPadding(new Insets(get("DialogVboxPaddingV")));
@@ -1164,23 +1194,7 @@ public class SlotMachineGUI extends Application {
             }
             spinTimeline.setCycleCount(1);
 
-            ParallelTransition spinAndBlur = new ParallelTransition(spinTimeline, blurTimeline);
-            spinAndBlur.setOnFinished(_ -> {
-                if (spinMode == SpinMode.TURBO) {
-                    if (column == GRID_SIZE - 1) { // Csak az utolsó oszlopnál játsszuk le
-                        spinSounds[0].stop();
-                        spinSounds[0].setVolume(initialVolume * 0.5);
-                        spinSounds[0].seek(Duration.ZERO);
-                        spinSounds[0].play();
-                    }
-                } else {
-                    // Normál mód: minden oszlop külön-külön lejátsza a hangot
-                    spinSounds[column].stop();
-                    spinSounds[column].setVolume(initialVolume * 0.5);
-                    spinSounds[column].seek(Duration.ZERO);
-                    spinSounds[column].play();
-                }
-            });
+            ParallelTransition spinAndBlur = getParallelTransition(spinTimeline, blurTimeline, column);
             columnSequence.getChildren().add(spinAndBlur);
             columnAnimations.add(columnSequence);
         }
@@ -1191,35 +1205,38 @@ public class SlotMachineGUI extends Application {
         allColumns.play();
     }
 
+    private ParallelTransition getParallelTransition(Timeline spinTimeline, Timeline blurTimeline, int column) {
+        ParallelTransition spinAndBlur = new ParallelTransition(spinTimeline, blurTimeline);
+        spinAndBlur.setOnFinished(_ -> {
+            if (spinMode == SpinMode.TURBO) {
+                if (column == GRID_SIZE - 1) { // Csak az utolsó oszlopnál játsszuk le
+                    spinSounds[0].stop();
+                    spinSounds[0].setVolume(initialVolume * 0.5);
+                    spinSounds[0].seek(Duration.ZERO);
+                    spinSounds[0].play();
+                }
+            } else {
+                // Normál mód: minden oszlop külön-külön lejátsza a hangot
+                spinSounds[column].stop();
+                spinSounds[column].setVolume(initialVolume * 0.5);
+                spinSounds[column].seek(Duration.ZERO);
+                spinSounds[column].play();
+            }
+        });
+        return spinAndBlur;
+    }
+
     private void checkAndProcessClusters(Runnable onComplete) {
         Map<Integer, List<int[]>> matchedClusters = game.checkForMatches();
         if (!matchedClusters.isEmpty()) {
             game.clearMatchedSymbols(matchedClusters);
-            //System.out.println("hit: "+hitPayout + "total: "+game.getSpinPayout());
-            // Kiírjuk a találatokat és nyereményeket
-            /*System.out.println("Eredmény a pörgetés után:");
-            for (Map.Entry<Integer, List<int[]>> entry : matchedClusters.entrySet()) {
-                int symbol = entry.getKey();
-                int clusterSize = entry.getValue().size();
-                Pair<Double, Integer> multiplierInfo = game.getPayoutMultiplier(symbol, clusterSize);
-                double payoutMultiplier = multiplierInfo.first;
-                double payout = game.getBet() * payoutMultiplier;
-
-                System.out.println("Szimbólum: " + symbol + ", Találatok száma: " + clusterSize +
-                        ", Szorzó: " + payoutMultiplier + ", Nyeremény: $" + payout);
-            }
-            System.out.println("Összes nyeremény: $" + game.getSpinPayout());
-            System.out.printf("Aktuális RTP: %.2f%%%n", game.getRTP());*/
-
             PauseTransition pause = new PauseTransition(Duration.millis(300)); // 500 ms várakozás
-            pause.setOnFinished(_ -> {
-                animateClusterClearing(matchedClusters, () -> {
-                    game.dropAndRefillSymbols();
-                    winText.setText("WIN: $" + (int) game.getSpinPayout());
-                    winText.setVisible(true);
-                    updateGridWithNewSymbols(() -> checkAndProcessClusters(onComplete));
-                });
-            });
+            pause.setOnFinished(_ -> animateClusterClearing(matchedClusters, () -> {
+                game.dropAndRefillSymbols();
+                winText.setText("WIN: $" + (int) game.getSpinPayout());
+                winText.setVisible(true);
+                updateGridWithNewSymbols(() -> checkAndProcessClusters(onComplete));
+            }));
             pause.play();
         } else {
             winText.setVisible(false);
@@ -1284,7 +1301,6 @@ public class SlotMachineGUI extends Application {
                         // Az animációk sorba rendezése
                         SequentialTransition bounceTransition = new SequentialTransition(fallDown, moveBack);
                         columnTransition.getChildren().add(bounceTransition);
-                        columnHasAnimations = true;
                     } else {
                         // Nincs felette szimbólum, új szimbólum beszúrása
                         int symbolIndex = updatedGrid[row][col];
@@ -1312,8 +1328,8 @@ public class SlotMachineGUI extends Application {
 
                         SequentialTransition bounceTransition = new SequentialTransition(fallIn, settleTransition);
                         columnTransition.getChildren().add(bounceTransition);
-                        columnHasAnimations = true;
                     }
+                    columnHasAnimations = true;
                 }
             }
 
@@ -1427,8 +1443,8 @@ public class SlotMachineGUI extends Application {
                 ImageView symbolOverlay = new ImageView(symbol.getImage());
                 symbolOverlay.setFitWidth(get("SymbolSize"));
                 symbolOverlay.setFitHeight(get("SymbolSize"));
-                symbolOverlay.setX(centerX - get("SymbolSize") / 2);
-                symbolOverlay.setY(centerY - get("SymbolSize") / 2);
+                symbolOverlay.setX(centerX - (double) get("SymbolSize") / 2);
+                symbolOverlay.setY(centerY - (double) get("SymbolSize") / 2);
                 particleEffects.getChildren().add(symbolOverlay);
 
                 // Create the same glow effect as the original
@@ -1950,7 +1966,7 @@ public class SlotMachineGUI extends Application {
         root.setClip(clip);
 
         Scene dialogScene = new Scene(root, get("LowBalanceSceneWidth"), get("LowBalanceSceneHeight"));
-        dialogScene.getStylesheets().add(getClass().getResource("/configs/normalstyle.css").toExternalForm());
+        dialogScene.getStylesheets().add(Objects.requireNonNull(getClass().getResource("/configs/normalstyle.css")).toExternalForm());
         dialogScene.setFill(Color.TRANSPARENT);
 
         userDeletedStage.setScene(dialogScene);
@@ -1968,4 +1984,91 @@ public class SlotMachineGUI extends Application {
     public static void main(String[] args) {
         launch(args);
     }
+    
+    // Initialize cached config values to avoid repeated parsing
+    private void initializeCachedValues() {
+        // Basic values
+        symbolSize = get("SymbolSize");
+        gridSize = GRID_SIZE;
+        symbolSizeHalf = symbolSize / 2.0;
+        
+        // Create reusable effects
+        goldGlow = createGoldGlow();
+        
+        // Cache frequently used config values
+        balanceTextFontSize = get("BalanceTextFontSize");
+        betTextFontSize = get("BetTextFontSize");
+        winTextFontSize = get("WinTextFontSize");
+        spinButtonFontSize = get("SpinButtonFontSize");
+        spinButtonPaddingY = get("SpinButtonPaddingY");
+        spinButtonPaddingX = get("SpinButtonPaddingX");
+        spinButtonWidth = get("SpinButtonWidth");
+        spinButtonHeight = get("SpinButtonHeight");
+        spinButtonTranslateY = get("SpinButtonTranslateY");
+        betButtonIconWidth = get("BetButtonIconWidth");
+        betButtonIconHeight = get("BetButtonIconHeight");
+        betButtonWidth = get("BetButtonWidth");
+        betButtonHeight = get("BetButtonHeight");
+        bonusButtonFontSize = get("BonusButtonFontSize");
+        bonusButtonWidth = get("BonusButtonWidth");
+        bonusButtonHeight = get("BonusButtonHeight");
+        autoplaySettingsButtonFontSize = get("AutoplaySettingsButtonFontSize");
+        autoPlaySettingsButtonPaddingY = get("AutoPlaySettingsButtonPaddingY");
+        autoPlaySettingsButtonPaddingX = get("AutoPlaySettingsButtonPaddingX");
+        autoplaySettingsButtonTranslateY = get("AutoplaySettingsButtonTranslateY");
+        autoPlaySettingsButtonWidth = get("AutoPlaySettingsButtonWidth");
+        autoPlaySettingsButtonHeight = get("AutoPlaySettingsButtonHeight");
+        autoplayIconWidth = get("AutoplayIconWidth");
+        autoplayIconHeight = get("AutoplayIconHeight");
+        volumeButtonWidth = get("VolumeButtonWidth");
+        volumeButtonHeight = get("VolumeButtonHeight");
+        volumeButtonPaddingV = get("VolumeButtonPaddingV");
+        volumeButtonPaddingV1 = get("VolumeButtonPaddingV1");
+        volumeButtonPaddingV2 = get("VolumeButtonPaddingV2");
+        volumeButtonPaddingV3 = get("VolumeButtonPaddingV3");
+        leftPanelSpacing = get("LeftPanelSpacing");
+        leftPanelPaddingV = get("LeftPanelPaddingV");
+        leftPanelPaddingV1 = get("LeftPanelPaddingV1");
+        leftPanelPaddingV2 = get("LeftPanelPaddingV2");
+        leftPanelPaddingV3 = get("LeftPanelPaddingV3");
+        bottomLeftPanelSpacing = get("BottomLeftPanelSpacing");
+        bottomLeftPanelPaddingV = get("BottomLeftPanelPaddingV");
+        bottomLeftPanelPaddingV1 = get("BottomLeftPanelPaddingV1");
+        bottomLeftPanelPaddingV2 = get("BottomLeftPanelPaddingV2");
+        bottomLeftPanelPaddingV3 = get("BottomLeftPanelPaddingV3");
+        bottomRightPanelSpacing = get("BottomRightPanelSpacing");
+        bottomRightPanelPaddingV = get("BottomRightPanelPaddingV");
+        bottomRightPanelPaddingV1 = get("BottomRightPanelPaddingV1");
+        bottomRightPanelPaddingV2 = get("BottomRightPanelPaddingV2");
+        bottomRightPanelPaddingV3 = get("BottomRightPanelPaddingV3");
+        betControlSpacing = get("BetControlSpacing");
+        betTextWidth = get("BetTextWidth");
+        winTextPaddingV = get("WinTextPaddingV");
+        winTextPaddingV1 = get("WinTextPaddingV1");
+        winTextPaddingV2 = get("WinTextPaddingV2");
+        winTextPaddingV3 = get("WinTextPaddingV3");
+        gameWidth = get("GameWidth");
+        gameHeight = get("GameHeight");
+        bgImageWidth = get("BGImageWidth");
+        bgImageHeight = get("BGImageHeight");
+        slotGridTranslateX = get("SlotGridTranslateX");
+        slotGridTranslateY = get("SlotGridTranslateY");
+        clipCorrection = get("ClipCorrection");
+        clipTranslateY = get("ClipTranslateY");
+        spinMoveToY = get("SpinMoveToY");
+        spinMoveFromY = get("SpinMoveFromY");
+        updateMoveDownToY = get("UpdateMoveDownToY");
+        updateMoveBackFromY = get("UpdateMoveBackFromY");
+        updateMoveBackToY = get("UpdateMoveBackToY");
+    }
+    
+    // Helper methods for creating reusable effects
+    private DropShadow createGoldGlow() {
+        DropShadow glow = new DropShadow();
+        glow.setColor(Color.GOLD);
+        glow.setRadius(20);
+        glow.setSpread(0.8);
+        return glow;
+    }
+    
 }

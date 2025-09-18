@@ -253,8 +253,18 @@ public class SlotMachineGUI extends Application {
         }
 
         // Create a clipping region to hide the top row of the slot grid
-        Rectangle clip = new Rectangle(get("SymbolSize") * GRID_SIZE, get("SymbolSize") * GRID_SIZE+get("ClipCorrection"));
-        clip.setTranslateY(get("ClipTranslateY")); // Move down by one symbol size to hide the top row
+        // Bővítjük a clipping területet oldalirányban, hogy befogadja a glow és scale animációkat
+        // De függőlegesen megtartjuk az eredeti pozíciót, hogy a felső sorban lévő szimbólumok el legyenek rejtve
+        double glowMargin = 30; // Glow radius (20px) + extra margin
+        double scaleMargin = get("SymbolSize") * 0.2; // 20% extra for 1.2x scale
+        double horizontalMargin = Math.max(glowMargin, scaleMargin);
+        
+        Rectangle clip = new Rectangle(
+            get("SymbolSize") * GRID_SIZE + horizontalMargin * 2, // Oldalirányban bővítjük
+            get("SymbolSize") * GRID_SIZE + get("ClipCorrection") // Függőlegesen eredeti méret
+        );
+        clip.setTranslateY(get("ClipTranslateY")); // Függőlegesen eredeti pozíció (felső sor rejtve)
+        clip.setTranslateX(-horizontalMargin); // Oldalirányban bővítjük
         slotGrid.setClip(clip);
 
         // Balance and Bet texts

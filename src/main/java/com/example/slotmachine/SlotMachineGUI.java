@@ -253,18 +253,10 @@ public class SlotMachineGUI extends Application {
         }
 
         // Create a clipping region to hide the top row of the slot grid
-        // Bővítjük a clipping területet oldalirányban, hogy befogadja a glow és scale animációkat
-        // De függőlegesen megtartjuk az eredeti pozíciót, hogy a felső sorban lévő szimbólumok el legyenek rejtve
-        double glowMargin = 30; // Glow radius (20px) + extra margin
-        double scaleMargin = get("SymbolSize") * 0.2; // 20% extra for 1.2x scale
-        double horizontalMargin = Math.max(glowMargin, scaleMargin);
-        
-        Rectangle clip = new Rectangle(
-            get("SymbolSize") * GRID_SIZE + horizontalMargin * 2, // Oldalirányban bővítjük
-            get("SymbolSize") * GRID_SIZE + get("ClipCorrection") // Függőlegesen eredeti méret
-        );
-        clip.setTranslateY(get("ClipTranslateY")); // Függőlegesen eredeti pozíció (felső sor rejtve)
-        clip.setTranslateX(-horizontalMargin); // Oldalirányban bővítjük
+        // A glow és scale animációk most egy külön rétegen futnak (particleEffects), 
+        // így a clipping region visszaállítható az eredeti méretre
+        Rectangle clip = new Rectangle(get("SymbolSize") * GRID_SIZE, get("SymbolSize") * GRID_SIZE+get("ClipCorrection"));
+        clip.setTranslateY(get("ClipTranslateY")); // Move down by one symbol size to hide the top row
         slotGrid.setClip(clip);
 
         // Balance and Bet texts
@@ -1426,32 +1418,45 @@ public class SlotMachineGUI extends Application {
                 int col = position[1];
                 ImageView symbol = reels[row][col];
 
-                // Create a bright glow effect
+                // Get symbol position in scene coordinates for overlay effects
+                Bounds bounds = symbol.localToScene(symbol.getBoundsInLocal());
+                double centerX = bounds.getCenterX();
+                double centerY = bounds.getCenterY();
+
+                // Create overlay ImageView that looks exactly like the original symbol
+                ImageView symbolOverlay = new ImageView(symbol.getImage());
+                symbolOverlay.setFitWidth(get("SymbolSize"));
+                symbolOverlay.setFitHeight(get("SymbolSize"));
+                symbolOverlay.setX(centerX - get("SymbolSize") / 2);
+                symbolOverlay.setY(centerY - get("SymbolSize") / 2);
+                particleEffects.getChildren().add(symbolOverlay);
+
+                // Create the same glow effect as the original
                 DropShadow glow = new DropShadow();
                 glow.setColor(Color.GOLD);
                 glow.setRadius(20);
                 glow.setSpread(0.8);
 
-                // Scale animation
-                ScaleTransition scaleUp = new ScaleTransition(Duration.millis(300), symbol);
+                // Apply the glow effect to overlay
+                symbolOverlay.setEffect(glow);
+
+                // Scale animation on overlay (same as original)
+                ScaleTransition scaleUp = new ScaleTransition(Duration.millis(300), symbolOverlay);
                 scaleUp.setToX(1.2);
                 scaleUp.setToY(1.2);
-
-                // Apply the glow effect
-                symbol.setEffect(glow);
 
                 // Create sparkle particles around the symbol
                 createSparkleEffect(particleEffects, symbol);
 
-                // Scale animation only
+                // Scale animation only (same as original)
                 ParallelTransition grow = new ParallelTransition(scaleUp);
 
-                // Final fade out
-                FadeTransition fadeOut = new FadeTransition(Duration.millis(300), symbol);
+                // Final fade out on overlay (same as original)
+                FadeTransition fadeOut = new FadeTransition(Duration.millis(300), symbolOverlay);
                 fadeOut.setFromValue(1.0);
                 fadeOut.setToValue(0.0);
 
-                // Combine all animations in sequence
+                // Combine all animations in sequence (same as original)
                 SequentialTransition fullSequence = new SequentialTransition(grow, fadeOut);
                 fullSequence.setOnFinished(_ -> {
                     symbol.setImage(null);
@@ -1459,6 +1464,7 @@ public class SlotMachineGUI extends Application {
                     symbol.setScaleX(1.0);
                     symbol.setScaleY(1.0);
                     symbol.setRotate(0);
+                    particleEffects.getChildren().remove(symbolOverlay);
                 });
 
                 animations.add(fullSequence);

@@ -5,11 +5,43 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.Scanner;
 
 public class ConsoleAdminApp {
-    private static final String BASE_URL = "http://localhost:8081/api/admin";
+    private static final String PC_SERVER_URL = "http://46.139.211.149:8081/api/admin";
+    private static final String LAPTOP_SERVER_URL = "http://46.139.211.149:8082/api/admin";
+    private static final String BASE_URL = getPreferredServerUrl();
     private static final HttpClient httpClient = HttpClient.newHttpClient();
+    
+    private static String getPreferredServerUrl() {
+        // Try PC server first (port 8081)
+        if (isServerAvailable(PC_SERVER_URL)) {
+            return PC_SERVER_URL;
+        }
+        // Fallback to laptop server (port 8082)
+        if (isServerAvailable(LAPTOP_SERVER_URL)) {
+            return LAPTOP_SERVER_URL;
+        }
+        // Default to PC server if neither is available
+        return PC_SERVER_URL;
+    }
+    
+    private static boolean isServerAvailable(String serverUrl) {
+        try {
+            HttpClient testClient = HttpClient.newBuilder()
+                    .connectTimeout(Duration.ofSeconds(3))
+                    .build();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(serverUrl.replace("/api/admin", "/api/auth/health")))
+                    .GET()
+                    .build();
+            HttpResponse<String> response = testClient.send(request, HttpResponse.BodyHandlers.ofString());
+            return response.statusCode() == 200;
+        } catch (Exception e) {
+            return false;
+        }
+    }
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
@@ -109,7 +141,7 @@ public class ConsoleAdminApp {
             System.out.println("Hiba: Érvénytelen szám formátum!");
         } catch (IOException | InterruptedException e) {
             System.out.println("Hiba: Nem lehet kapcsolódni a szerverhez!");
-            System.out.println("Ellenőrizd, hogy a szerver fut-e a 8081-es porton.");
+            System.out.println("Ellenőrizd, hogy a szerver fut-e a 8081-es (PC) vagy 8082-es (laptop) porton.");
             System.out.println("Részletek: " + e.getMessage());
         }
     }

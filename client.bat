@@ -1,17 +1,17 @@
 @echo off
-echo SlotMachine Kliens - Kulso Szerver
-echo ===================================
+echo SlotMachine Kliens - Port Forwarding
+echo ====================================
 echo.
 
-echo Kulso szerver beallitasok:
-echo - Szerver IP: 46.139.211.149
-echo - Port: 8081
-echo - Teljes URL: http://46.139.211.149:8081
+echo Szerver beallitasok:
+echo - PC Szerver: http://46.139.211.149:8081
+echo - Laptop Szerver: http://46.139.211.149:8082
 echo.
 
 echo MEGJEGYZES: 
-echo - Helyi szerver teszteléshez használd: client-local.bat
-echo - A kliens automatikusan észleli a helyi szervert, ha elérhető
+echo - A kliens automatikusan észleli a futó szervert
+echo - Először próbálja a PC szervert (8081), majd a laptop szervert (8082)
+echo - Nincs szükség külön "helyi" vagy "külső" verzióra
 echo.
 
 echo Kliens inditasa...

@@ -42,7 +42,10 @@ Started SlotMachineServerApplication in X.XXX seconds
 
 ### 2. Kliens indítása
 ```bash
-# Eredeti módon
+# Windows batch fájllal (ajánlott)
+client.bat
+
+# Vagy Maven parancs
 mvn javafx:run
 
 # Vagy IDE-ből: SlotMachineGUI.main()
@@ -55,15 +58,14 @@ A szerver most már bárhonnan elérhető! A konfiguráláshoz:
 1. **Szerver oldal**: A szerver automatikusan `0.0.0.0:8081`-en indul, így minden hálózati interfészen elérhető
 2. **Kliens oldal**: A főmenü "Settings" → "Szerver Beállítások" menüpontjában állíthatod be a szerver címét
 
-**Példa szerver címek:**
-- Nyilvános szerver (alapértelmezett): `http://46.139.211.149:8081`
-- Helyi hálózat: `http://192.168.1.100:8081`
-- Localhost: `http://localhost:8081`
+**Szerver címek:**
+- PC Szerver: `http://46.139.211.149:8081`
+- Laptop Szerver: `http://46.139.211.149:8082`
 
 **Hálózati követelmények:**
-- A 8081-es port legyen nyitva a szerveren
-- Ha tűzfal van, engedélyezd a bejövő kapcsolatokat a 8081-es porton
-- Router esetén port forwarding szükséges lehet
+- A 8081-es (PC) vagy 8082-es (laptop) port legyen nyitva a szerveren
+- Ha tűzfal van, engedélyezd a bejövő kapcsolatokat a megfelelő porton
+- Port forwarding beállítva: 8081 → PC, 8082 → laptop
 
 ### 🏠 Otthoni Szerver Külső Elérhetősége
 
@@ -72,10 +74,10 @@ Ha az otthoni gépeden futtatod a szervert és szeretnéd, hogy külső hálóza
 **📋 Részletes útmutató**: Lásd az `EXTERNAL-ACCESS-SETUP.md` fájlt!
 
 **Gyors összefoglaló:**
-1. **Windows Tűzfal**: Engedélyezd a 8081-es portot
-2. **Router Port Forwarding**: Állítsd be a 8081 → belső IP forwarding-ot
+1. **Windows Tűzfal**: Engedélyezd a 8081-es (PC) vagy 8082-es (laptop) portot
+2. **Router Port Forwarding**: Állítsd be a port forwarding-ot (8081 → PC, 8082 → laptop)
 3. **Nyilvános IP**: Használd a nyilvános IP címedet vagy DDNS szolgáltatást
-4. **Kliens beállítás**: `http://46.139.211.149:8081` (alapértelmezett)
+4. **Kliens beállítás**: Automatikus észlelés (PC szerver előnyben)
 
 **⚠️ Biztonsági figyelmeztetés**: Külső hozzáférés biztonsági kockázatokkal jár! Használj erős jelszavakat és fontold meg VPN használatát.
 
@@ -107,7 +109,7 @@ mvn javafx:run -Djavafx.mainClass=com.example.slotmachine.admin.AdminApp
 
 A fejlesztési környezetben H2 fájl alapú adatbázist használunk (állandó tárolás):
 - Adatbázis fájl: `./data/slotmachine.mv.db`
-- H2 Console: `http://localhost:8081/h2-console`
+- H2 Console: `http://46.139.211.149:8081/h2-console` (PC) vagy `http://46.139.211.149:8082/h2-console` (laptop)
 - JDBC URL: `jdbc:h2:file:./data/slotmachine`
 - Username: `sa`
 - Password: (üres)

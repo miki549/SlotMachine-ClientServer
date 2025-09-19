@@ -25,8 +25,8 @@ class UserDeletedException extends RuntimeException {
 }
 
 public class ApiClient {
-    private static final String DEFAULT_BASE_URL = "http://46.139.211.149:8081/api";
-    private static final String LOCALHOST_BASE_URL = "http://localhost:8081/api";
+    private static final String PC_SERVER_URL = "http://46.139.211.149:8081/api";
+    private static final String LAPTOP_SERVER_URL = "http://46.139.211.149:8082/api";
     private final String baseUrl;
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
@@ -37,12 +37,16 @@ public class ApiClient {
     }
     
     private static String getPreferredServerUrl() {
-        // First try localhost
-        if (isServerAvailable(LOCALHOST_BASE_URL)) {
-            return LOCALHOST_BASE_URL;
+        // Try PC server first (port 8081)
+        if (isServerAvailable(PC_SERVER_URL)) {
+            return PC_SERVER_URL;
         }
-        // Fallback to external server
-        return DEFAULT_BASE_URL;
+        // Fallback to laptop server (port 8082)
+        if (isServerAvailable(LAPTOP_SERVER_URL)) {
+            return LAPTOP_SERVER_URL;
+        }
+        // Default to PC server if neither is available
+        return PC_SERVER_URL;
     }
     
     private static boolean isServerAvailable(String serverUrl) {

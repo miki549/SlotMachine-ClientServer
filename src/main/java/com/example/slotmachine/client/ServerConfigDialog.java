@@ -24,8 +24,8 @@ import static com.example.slotmachine.ConfigManager.get;
 
 public class ServerConfigDialog {
     private static final String SERVER_URL_KEY = "server_url";
-    private static final String DEFAULT_SERVER_URL = "http://46.139.211.149:8081";
-    private static final String LOCALHOST_URL = "http://localhost:8081";
+    private static final String PC_SERVER_URL = "http://46.139.211.149:8081";
+    private static final String LAPTOP_SERVER_URL = "http://46.139.211.149:8082";
     
     private final Preferences prefs;
     private String serverUrl;
@@ -54,16 +54,21 @@ public class ServerConfigDialog {
     }
     
     private String getPreferredDefaultUrl() {
-        // Check if localhost server is available
-        if (isLocalServerAvailable()) {
-            return LOCALHOST_URL;
+        // Check if PC server is available first
+        if (isServerAvailable(PC_SERVER_URL)) {
+            return PC_SERVER_URL;
         }
-        return DEFAULT_SERVER_URL;
+        // Fallback to laptop server
+        if (isServerAvailable(LAPTOP_SERVER_URL)) {
+            return LAPTOP_SERVER_URL;
+        }
+        // Default to PC server
+        return PC_SERVER_URL;
     }
     
-    private boolean isLocalServerAvailable() {
+    private boolean isServerAvailable(String serverUrl) {
         try {
-            ApiClient testClient = new ApiClient(LOCALHOST_URL);
+            ApiClient testClient = new ApiClient(serverUrl);
             return testClient.isConnected();
         } catch (Exception e) {
             return false;
@@ -112,7 +117,7 @@ public class ServerConfigDialog {
         serverField.setStyle(String.format("-fx-font-size: %dpx;", get("ServerConfigFieldFontSize")));
         
         // Example label
-        Label exampleLabel = new Label("Example: http://localhost:8081 (local server), http://46.139.211.149:8081 (external server), http://192.168.1.100:8081 (local network)");
+        Label exampleLabel = new Label("Example: http://46.139.211.149:8081 (PC server), http://46.139.211.149:8082 (laptop server)");
         exampleLabel.setStyle(String.format("-fx-font-size: %dpx; -fx-text-fill: gray;", get("ServerConfigExampleFontSize")));
         exampleLabel.setWrapText(true);
         exampleLabel.setMaxWidth(get("ServerConfigFieldWidth"));

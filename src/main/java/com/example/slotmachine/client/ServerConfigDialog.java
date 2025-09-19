@@ -41,7 +41,8 @@ public class ServerConfigDialog {
     
     public ServerConfigDialog(double volume) {
         prefs = Preferences.userNodeForPackage(ServerConfigDialog.class);
-        serverUrl = prefs.get(SERVER_URL_KEY, getPreferredDefaultUrl());
+        // Use saved URL or default to PC server without checking availability
+        serverUrl = prefs.get(SERVER_URL_KEY, PC_SERVER_URL);
         this.volume = volume;
         
         // Initialize button click sound with the provided volume
@@ -53,27 +54,6 @@ public class ServerConfigDialog {
         return isServerConfigDialogOpen;
     }
     
-    private String getPreferredDefaultUrl() {
-        // Check if PC server is available first
-        if (isServerAvailable(PC_SERVER_URL)) {
-            return PC_SERVER_URL;
-        }
-        // Fallback to laptop server
-        if (isServerAvailable(LAPTOP_SERVER_URL)) {
-            return LAPTOP_SERVER_URL;
-        }
-        // Default to PC server
-        return PC_SERVER_URL;
-    }
-    
-    private boolean isServerAvailable(String serverUrl) {
-        try {
-            ApiClient testClient = new ApiClient(serverUrl);
-            return testClient.isConnected();
-        } catch (Exception e) {
-            return false;
-        }
-    }
     
     public String showAndWait(Stage owner) {
         // Check if server config dialog is already open

@@ -1,17 +1,17 @@
 @echo off
-echo SlotMachine Server - Windows Tuzfal Beallitas
+echo SlotMachine Server - Windows Firewall Setup
 echo ===========================================
 echo.
-echo FIGYELEM: Ez a script adminisztratori jogosultsagot igenyel!
+echo WARNING: This script requires administrator privileges!
 echo.
 
 :device_selection
-echo Melyik eszkozon futtatod a szervert?
+echo Which device are you running the server on?
 echo.
-echo 1. PC (8081-es port)
-echo 2. Laptop (8082-es port)
+echo 1. PC (port 8081)
+echo 2. Laptop (port 8082)
 echo.
-set /p choice="Valassz opciot (1 vagy 2): "
+set /p choice="Choose option (1 or 2): "
 
 if "%choice%"=="1" (
     set PORT=8081
@@ -23,22 +23,22 @@ if "%choice%"=="1" (
     goto :setup_firewall
 ) else (
     echo.
-    echo Ervenytelen valasztas! Kerdlek valassz 1-et vagy 2-t.
+    echo Invalid choice! Please choose 1 or 2.
     echo.
     goto :device_selection
 )
 
 :setup_firewall
 echo.
-echo Tuzfal szabaly hozzaadasa a %PORT%-as porthoz (%DEVICE%)...
+echo Adding firewall rule for port %PORT% (%DEVICE%)...
 netsh advfirewall firewall add rule name="SlotMachine Server %DEVICE%" dir=in action=allow protocol=TCP localport=%PORT%
 
 echo.
-echo Sikeres! A %PORT%-as port most mar elerheto kulso halozatrol.
+echo Success! Port %PORT% is now accessible from external networks.
 echo.
-echo Beallitott szabaly:
-echo - Nev: "SlotMachine Server %DEVICE%"
+echo Configured rule:
+echo - Name: "SlotMachine Server %DEVICE%"
 echo - Port: %PORT%
-echo - Protokol: TCP
-echo - Irany: Bejovo
-echo - Muvelet: Engedelyez
+echo - Protocol: TCP
+echo - Direction: Inbound
+echo - Action: Allow

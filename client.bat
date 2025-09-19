@@ -1,22 +1,22 @@
 @echo off
-echo SlotMachine Kliens - Port Forwarding
+echo SlotMachine Client - Port Forwarding
 echo ====================================
 echo.
 
-echo Szerver beallitasok:
-echo - PC Szerver: http://46.139.211.149:8081
-echo - Laptop Szerver: http://46.139.211.149:8082
+echo Server settings:
+echo - PC Server: http://46.139.211.149:8081
+echo - Laptop Server: http://46.139.211.149:8082
 echo.
 
-echo MEGJEGYZES: 
-echo - A kliens automatikusan észleli a futó szervert
-echo - Először próbálja a PC szervert (8081), majd a laptop szervert (8082)
-echo - Nincs szükség külön "helyi" vagy "külső" verzióra
+echo NOTE: 
+echo - Client automatically detects running server
+echo - First tries PC server (8081), then laptop server (8082)
+echo - No need for separate "local" or "external" versions
 echo.
 
-echo Kliens inditasa...
+echo Starting client...
 echo.
 
-echo Kliens inditasa Maven-nel...
+echo Starting client with Maven...
 mvn javafx:run
 

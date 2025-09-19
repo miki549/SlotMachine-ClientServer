@@ -1,21 +1,21 @@
 @echo off
-echo Admin konzol indítása...
+echo Starting admin console...
 cd /d "%~dp0"
 echo.
-echo Ellenőrzés, hogy a szerver fut-e...
-echo Próbálkozás PC szerverrel (8081-es port)...
+echo Checking if server is running...
+echo Trying PC server (port 8081)...
 curl -s http://46.139.211.149:8081/api/auth/health >nul 2>&1
 if %errorlevel% == 0 (
-    echo ✅ PC szerver elérhető (8081-es port)
+    echo ✅ PC server available (port 8081)
     goto :start_admin
 )
-echo Próbálkozás laptop szerverrel (8082-es port)...
+echo Trying laptop server (port 8082)...
 curl -s http://46.139.211.149:8082/api/auth/health >nul 2>&1
 if %errorlevel% == 0 (
-    echo ✅ Laptop szerver elérhető (8082-es port)
+    echo ✅ Laptop server available (port 8082)
     goto :start_admin
 )
-echo ❌ HIBA: Egyik szerver sem fut! Indítsd el a szervert.
+echo ❌ ERROR: No server is running! Start the server.
 pause
 exit /b 1
 

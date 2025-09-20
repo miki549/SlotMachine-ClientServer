@@ -183,6 +183,9 @@ public class ServerConfigDialog {
                 return;
             }
             
+            // Disable button and show testing status
+            testButton.setDisable(true);
+            testButton.setText("Testing...");
             statusLabel.setText("🔄 Testing connection...");
             statusLabel.setStyle(String.format("-fx-text-fill: rgb(135, 206, 235); -fx-font-size: %dpx;", get("ServerConfigStatusFontSize")));
             
@@ -193,6 +196,10 @@ public class ServerConfigDialog {
                     boolean connected = testClient.isConnected();
                     
                     Platform.runLater(() -> {
+                        // Re-enable button and reset text
+                        testButton.setDisable(false);
+                        testButton.setText("Test Connection");
+                        
                         if (connected) {
                             statusLabel.setText("✅ Connection successful!");
                             statusLabel.setStyle(String.format("-fx-text-fill: rgb(152,255,152); -fx-font-size: %dpx;", get("ServerConfigStatusFontSize")));
@@ -203,6 +210,10 @@ public class ServerConfigDialog {
                     });
                 } catch (Exception ex) {
                     Platform.runLater(() -> {
+                        // Re-enable button and reset text
+                        testButton.setDisable(false);
+                        testButton.setText("Test Connection");
+                        
                         statusLabel.setText("❌ Error: " + ex.getMessage());
                         statusLabel.setStyle(String.format("-fx-text-fill: rgb(255,71,74); -fx-font-size: %dpx;", get("ServerConfigStatusFontSize")));
                     });
@@ -265,7 +276,7 @@ public class ServerConfigDialog {
     }
     
     public String getServerUrl() {
-        return prefs.get(SERVER_URL_KEY, getPreferredDefaultUrl());
+        return prefs.get(SERVER_URL_KEY, PC_SERVER_URL);
     }
     
     public void saveServerUrl(String url) {

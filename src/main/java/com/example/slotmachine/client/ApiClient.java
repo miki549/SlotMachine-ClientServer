@@ -83,7 +83,7 @@ public class ApiClient {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(baseUrl + "/auth/login"))
                 .header("Content-Type", "application/json")
-                .timeout(Duration.ofSeconds(30))
+                .timeout(Duration.ofSeconds(10))
                 .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
                 .build();
 
@@ -105,7 +105,7 @@ public class ApiClient {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(baseUrl + "/auth/register"))
                 .header("Content-Type", "application/json")
-                .timeout(Duration.ofSeconds(30))
+                .timeout(Duration.ofSeconds(10))
                 .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
                 .build();
 
@@ -128,7 +128,7 @@ public class ApiClient {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(baseUrl + "/game/balance"))
                 .header("Authorization", "Bearer " + authToken)
-                .timeout(Duration.ofSeconds(15))
+                .timeout(Duration.ofSeconds(8))
                 .GET()
                 .build();
 
@@ -157,7 +157,7 @@ public class ApiClient {
                 .uri(URI.create(baseUrl + "/game/spin"))
                 .header("Content-Type", "application/json")
                 .header("Authorization", "Bearer " + authToken)
-                .timeout(Duration.ofSeconds(30))
+                .timeout(Duration.ofSeconds(15))
                 .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
                 .build();
 
@@ -177,7 +177,7 @@ public class ApiClient {
             // Use health endpoint for connection testing (no authentication required)
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(baseUrl + "/auth/health"))
-                    .timeout(Duration.ofSeconds(15))
+                    .timeout(Duration.ofSeconds(5))
                     .GET()
                     .build();
 

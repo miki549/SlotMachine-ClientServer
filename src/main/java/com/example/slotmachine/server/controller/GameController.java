@@ -6,11 +6,13 @@ import com.example.slotmachine.server.dto.SpinResponse;
 import com.example.slotmachine.server.entity.User;
 import com.example.slotmachine.server.security.JwtUtil;
 import com.example.slotmachine.server.service.GameService;
+import com.example.slotmachine.server.service.SlotMachineEngine;
 import com.example.slotmachine.server.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Optional;
 
 @RestController
@@ -66,25 +68,12 @@ public class GameController {
                 return ResponseEntity.badRequest().body("Invalid bet amount");
             }
 
-            if (spinRequest.getSymbols() == null || spinRequest.getSymbols().length != 7 || 
-                spinRequest.getSymbols()[0].length != 7) {
-                return ResponseEntity.badRequest().body("Invalid symbols grid");
-            }
-
-            if (spinRequest.getPayout() == null || spinRequest.getPayout() < 0) {
-                return ResponseEntity.badRequest().body("Invalid payout");
-            }
-
-            boolean success = gameService.processSpin(
+            // Új logika: a szerver generálja a szimbólumokat és számítja a nyereményt
+            SlotMachineEngine.SpinResult spinResult = gameService.processSpinNew(
                 user.getUsername(), 
                 spinRequest.getBetAmount(), 
-                spinRequest.getSymbols(), 
-                spinRequest.getPayout()
+                spinRequest.getIsBonusMode()
             );
-
-            if (!success) {
-                return ResponseEntity.ok(SpinResponse.error("Insufficient balance"));
-            }
 
             // Get updated balance - refresh user from DB
             Optional<User> userOpt = userService.findById(user.getId());
@@ -93,8 +82,32 @@ public class GameController {
             }
 
             User updatedUser = userOpt.get();
-            return ResponseEntity.ok(SpinResponse.success(updatedUser.getBalance(), spinRequest.getPayout()));
+            
+            // Convert SpinResult to SpinResponse
+            List<SpinResponse.CascadeStepDto> cascadeSteps = spinResult.getCascadeSteps().stream()
+                .map(step -> new SpinResponse.CascadeStepDto(
+                    step.getMatchedClusters(),
+                    step.getPayout(),
+                    step.getGridAfterClear(),
+                    step.getGridAfterRefill()
+                ))
+                .collect(java.util.stream.Collectors.toList());
 
+            return ResponseEntity.ok(SpinResponse.success(
+                updatedUser.getBalance(), 
+                spinResult.getTotalPayout(),
+                spinResult.getInitialGrid(),
+                spinResult.getFinalGrid(),
+                cascadeSteps,
+                spinResult.isBonusTrigger(),
+                spinResult.isRetrigger()
+            ));
+
+        } catch (RuntimeException e) {
+            if (e.getMessage().equals("Insufficient balance")) {
+                return ResponseEntity.ok(SpinResponse.error("Insufficient balance"));
+            }
+            return ResponseEntity.internalServerError().body("Spin processing failed: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body("Spin processing failed: " + e.getMessage());
         }

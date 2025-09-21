@@ -10,10 +10,9 @@ import static com.example.slotmachine.GameSettings.*;
 
 public class SlotMachine {
 
-    private final int[][] generatedSymbols = new int[GRID_SIZE][GRID_SIZE];
+    private final int[][] generatedSymbols = new int[GRID_SIZE][GRID_SIZE]; // Csak a GUI megjelenítéshez
     private double balance;
     private int bet = DEFAULT_BET;
-    private final Random random = new Random();
     private boolean isBonusMode = false;
     private int remainingFreeSpins = 0;
     private double bonusPayout = 0;
@@ -23,27 +22,6 @@ public class SlotMachine {
     private UserBannedListener userBannedListener;
     private UserUnbannedListener userUnbannedListener;
     private UserDeletedListener userDeletedListener;
-
-    // Szimbólum valószínűségek és szorzók
-    private final double[] symbolProbabilities = {12,12,12,14,14,16,15,4,1};  // Összesen 100%
-    private final double[][] payoutMultipliers = {
-            // 5 szimbólum - legalacsonyabb klaszterméret
-            {0.20, 0.25, 0.30, 0.35, 0.40, 0.5, 0.75, 1.00, 2.5},   // 5 szimbólum
-            {0.25, 0.30, 0.40, 0.45, 0.50, 0.75, 1.0, 1.50, 3.5},   // 6 szimbólum
-            {0.30, 0.40, 0.50, 0.55, 0.74, 1.00, 1.25, 1.75, 4.5},   // 7 szimbólum
-            {0.40, 0.50, 0.75, 0.80, 1.00, 1.25, 1.50, 2.00, 6.0},   // 8 szimbólum
-            {0.50, 0.75, 1.00, 1.20, 0.25, 1.50, 2.00, 2.50, 6.5},   // 9 szimbólum
-            {1.00, 1.25, 1.50, 1.70, 2.00, 3.00, 4.00, 5.00, 7.0},    // 10 szimbólum
-            {1.50, 2.00, 2.50, 2.75, 3.00, 4.50, 6.00, 7.50, 10.0},   // 11 szimbólum
-            {2.50, 3.00, 3.50, 4.50, 5.00, 10.00, 12.50, 15.00, 20.0},   // 12 szimbólum
-            {5.00, 6.00, 8.00, 9.00, 10.00, 20.00, 30.00, 35.00, 40.0},    // 13 szimbólum
-            {10.00, 12.00, 15.00, 18.00, 10.00, 40.00, 60.00, 70.00, 80.0},    // 14 szimbólum
-            {20.00, 25.00, 30.00, 35.00, 40.00, 60.00, 100.00, 150.00, 160.0},    // 15 szimbólum vagy több
-    };
-    private double spinPayout = 0;
-    // RTP követéséhez szükséges változók
-    private int totalBets = 0;
-    private double totalPayouts = 0;
     public SlotMachine(ApiClient apiClient) {
         if (apiClient == null) {
             throw new IllegalArgumentException("ApiClient cannot be null - this is an online-only game");
@@ -52,35 +30,38 @@ public class SlotMachine {
     }
 
 
-    // Tét levonása és hozzáadása az összesített téthez
+    // Tét levonása és hozzáadása (lokális cache frissítés)
     public void decreaseBalance(int credit) {
         this.balance -= credit;
-        this.totalBets += credit;  // Hozzáadjuk a tétek összegéhez
-        // Balance azonnal frissül, a szerver is kezeli
     }
 
     public void increaseBalance(double credit) {
         this.balance += credit;
-        // Balance azonnal frissül, a szerver is kezeli
     }
 
     public int getBalance() {
         return (int) this.balance;
     }
 
-    // Szerver kommunikáció a spin feldolgozáshoz
-    public boolean processSpinOnServer(int betAmount, double payout) {
+    // Szerver kommunikáció a spin feldolgozáshoz - új logika
+    public SpinResponse processSpinOnServer(int betAmount, boolean isBonusMode) {
         try {
-            SpinResponse response = apiClient.processSpin(betAmount, generatedSymbols, payout);
+            SpinResponse response = apiClient.processSpin(betAmount, isBonusMode);
             if (response.isSuccess()) {
                 // A szerver már hozzáadta a nyereményt, használjuk a szerver balance-t
                 double serverBalance = response.getNewBalance();
                 this.balance = serverBalance;
+                
+                // Frissítjük a lokális grid-et a szerver adataival
+                if (response.getInitialGrid() != null) {
+                    copyGridTo(response.getInitialGrid(), generatedSymbols);
+                }
+                
                 System.out.println("Balance updated from server after spin: $" + this.balance);
-                return true;
+                return response;
             } else {
                 System.err.println("Spin failed: " + response.getMessage());
-                return false;
+                return null;
             }
         } catch (Exception e) {
             // Check if it's a user banned exception
@@ -91,7 +72,23 @@ public class SlotMachine {
             } else {
                 System.err.println("Failed to process spin on server: " + e.getMessage());
             }
-            return false;
+            return null;
+        }
+    }
+
+    // Backward compatibility - régi spin feldolgozás
+    @Deprecated
+    public boolean processSpinOnServer(int betAmount, double payout) {
+        SpinResponse response = processSpinOnServer(betAmount, false);
+        return response != null && response.isSuccess();
+    }
+
+    // Grid másolása
+    private void copyGridTo(int[][] source, int[][] target) {
+        for (int i = 0; i < GRID_SIZE && i < source.length; i++) {
+            for (int j = 0; j < GRID_SIZE && j < source[i].length; j++) {
+                target[i][j] = source[i][j];
+            }
         }
     }
 
@@ -137,220 +134,15 @@ public class SlotMachine {
             this.bet -= BET_STEP;
         }
     }
-    public Map<Integer, List<int[]>> checkForMatches() {
-        Map<Integer, List<int[]>> matchedClusters = new HashMap<>();
-        boolean[][] visited = new boolean[GRID_SIZE][GRID_SIZE];
-
-        for (int row = 0; row < GRID_SIZE; row++) {
-            for (int col = 0; col < GRID_SIZE; col++) {
-                if (!visited[row][col]) {
-                    List<int[]> cluster = new ArrayList<>();
-                    findCluster(row, col, generatedSymbols[row][col], visited, cluster);
-
-                    if (cluster.size() >= CLUSTER_SIZE) {
-                        matchedClusters
-                                .computeIfAbsent(generatedSymbols[row][col], _ -> new ArrayList<>())
-                                .addAll(cluster);
-                    }
-                }
-            }
-        }
-        return matchedClusters;
-    }
-
-public int[][] generateSymbols() {
-    // Track scatter symbols per column
-    boolean[] columnHasScatter = new boolean[GRID_SIZE];
-    int scatterCount = 0;
-    
-    for (int row = 0; row < GRID_SIZE; row++) {
-        for (int col = 0; col < GRID_SIZE; col++) {
-            int symbol;
-            if (random.nextDouble() < 0.3) {
-                List<Integer> neighbors = new ArrayList<>();
-                // Fölötte lévő szomszéd
-                if (row > 0) neighbors.add(generatedSymbols[row - 1][col]);
-                // Alatta lévő szomszéd
-                if (row < GRID_SIZE - 1) neighbors.add(generatedSymbols[row + 1][col]);
-                // Balra lévő szomszéd
-                if (col > 0) neighbors.add(generatedSymbols[row][col - 1]);
-                // Jobbra lévő szomszéd
-                if (col < GRID_SIZE - 1) neighbors.add(generatedSymbols[row][col + 1]);
-                if (!neighbors.isEmpty()) {
-                    symbol = neighbors.get(random.nextInt(neighbors.size()));
-                } else {
-                    symbol = generateSymbol();
-                }
-            } else {
-                symbol = generateSymbol();
-            }
-            
-            // Check if this is a scatter symbol
-            if (symbol == SCATTER_SYMBOL) {
-                // Only allow scatter if:
-                // 1. We haven't reached the maximum scatter count
-                // 2. This column doesn't already have a scatter
-                if (scatterCount >= BONUS_TRIGGER_COUNT || columnHasScatter[col]) {
-                    // Generate a different symbol instead
-                    symbol = generateNonScatterSymbol();
-                } else {
-                    // This is a valid scatter placement
-                    scatterCount++;
-                    columnHasScatter[col] = true;
-                }
-            }
-            
-            generatedSymbols[row][col] = symbol;
-        }
-    }
-    return generatedSymbols;
-}
-
-// Helper method to generate a non-scatter symbol
-private int generateNonScatterSymbol() {
-    int symbol;
-    do {
-        symbol = generateSymbol();
-    } while (symbol == SCATTER_SYMBOL);
-    return symbol;
-}
-
-    // Módosított metódus a véletlenszerű szimbólum generálásához a valószínűségek alapján
-    public int generateSymbol() {
-        int randomValue = random.nextInt(100);
-        double cumulativeProbability = 0;
-        for (int i = 0; i < symbolProbabilities.length; i++) {
-            cumulativeProbability += symbolProbabilities[i];
-            if (randomValue < cumulativeProbability) {
-                return i;
-            }
-        }
-        return symbolProbabilities.length - 1;
-    }
-
-    private void findCluster(int row, int col, int symbol, boolean[][] visited, List<int[]> cluster) {
-        if (row < 0 || row >= GRID_SIZE || col < 0 || col >= GRID_SIZE || visited[row][col] || generatedSymbols[row][col] != symbol) {
-            return;
-        }
-        visited[row][col] = true;
-        cluster.add(new int[]{row, col});
-
-        findCluster(row + 1, col, symbol, visited, cluster);
-        findCluster(row - 1, col, symbol, visited, cluster);
-        findCluster(row, col + 1, symbol, visited, cluster);
-        findCluster(row, col - 1, symbol, visited, cluster);
-    }
-
-    // Nyeremény kiszámítása és klaszterek törlése
-    public double clearMatchedSymbols(Map<Integer, List<int[]>> matchedClusters) {
-        double hitPayout = 0;
-
-        for (Map.Entry<Integer, List<int[]>> entry : matchedClusters.entrySet()) {
-            int symbol = entry.getKey();
-            int clusterSize = entry.getValue().size();
-            Pair<Double, Integer> multiplierInfo = getPayoutMultiplier(symbol, clusterSize);
-            double payout = bet * multiplierInfo.first;
-            hitPayout += payout;
-
-            for (int[] position : entry.getValue()) {
-                generatedSymbols[position[0]][position[1]] = -1;  // Üresítjük a matched szimbólumokat
-            }
-        }
-        spinPayout += hitPayout;
-        // NEM adjuk hozzá itt a balance-hoz, mert a GUI-ban fogjuk hozzáadni
-        totalPayouts += hitPayout;  // Nyeremény hozzáadása az összes nyereményhez
-        return hitPayout;
-    }
-
-    public void resetSpinPayout() {
-        spinPayout = 0;
-    }
-
-    // Üres helyek feltöltése új szimbólumokkal a legfelső sorban
-    public void dropAndRefillSymbols() {
-        for (int col = 0; col < GRID_SIZE; col++) {
-            int emptyRow = GRID_SIZE - 1;
-
-            // Az oszlop végigjárása alulról felfelé
-            for (int row = GRID_SIZE - 1; row >= 0; row--) {
-                if (generatedSymbols[row][col] != -1) {
-                    generatedSymbols[emptyRow][col] = generatedSymbols[row][col];
-                    if (emptyRow != row) {
-                        generatedSymbols[row][col] = -1;
-                    }
-                    emptyRow--;
-                }
-            }
-
-            // Üres helyek feltöltése új szimbólumokkal a legfelső sorban
-            while (emptyRow >= 0) {
-                if (random.nextDouble() < 0.2) {  // 20% esély a klaszterformációra
-                    generatedSymbols[emptyRow][col] = suggestClusterSymbol(col, emptyRow);
-                } else {
-                    generatedSymbols[emptyRow][col] = generateSymbol();  // Véletlenszerű szimbólum
-                }
-                emptyRow--;
-            }
-        }
-    }
-    private int suggestClusterSymbol(int col, int row) {
-        List<Integer> possibleSymbols = new ArrayList<>();
-
-        // Nézd meg az összes szomszédot
-        /*if (row > 0 && generatedSymbols[row - 1][col] != -1) {  // Fölötte
-            possibleSymbols.add(generatedSymbols[row - 1][col]);
-        }*/
-        /*if (row < GRID_SIZE - 1 && generatedSymbols[row + 1][col] != -1) {  // Alatta
-            possibleSymbols.add(generatedSymbols[row + 1][col]);
-        }*/
-        if (col > 0 && generatedSymbols[row][col - 1] != -1) {  // Balra
-            possibleSymbols.add(generatedSymbols[row][col - 1]);
-        }
-        if (col < GRID_SIZE - 1 && generatedSymbols[row][col + 1] != -1) {  // Jobbra
-            possibleSymbols.add(generatedSymbols[row][col + 1]);
-        }
-
-        // Ha van lehetséges szimbólum, válassz közülük nagyobb eséllyel
-        if (!possibleSymbols.isEmpty() && random.nextDouble() < 0.8) {  // 80% esély a szomszéd másolására
-            return possibleSymbols.get(random.nextInt(possibleSymbols.size()));
-        }
-
-        // Ha nincs releváns szomszéd, vagy nem másolunk, generáljunk egy véletlenszerű szimbólumot
-        return generateSymbol();
-    }
-
-
-    // RTP kiszámítása
-    public double getRTP() {
-        if (totalBets == 0) {
-            return 0;
-        }
-        return ((double) totalPayouts / totalBets) * 100;
-    }
-
-    public Pair<Double, Integer> getPayoutMultiplier(int symbol, int clusterSize) {
-        int multiplierIndex = Math.min(clusterSize-CLUSTER_SIZE, payoutMultipliers.length-1);
-        double multiplier = payoutMultipliers[multiplierIndex][symbol];
-        return new Pair<>(multiplier, clusterSize);
-    }
-
-    // Getter metódusok az összes tét és nyeremény lekérdezéséhez
-    public int getTotalBets() {
-        return totalBets;
-    }
-
-    public double getTotalPayouts() {
-        return totalPayouts;
-    }
+    // MEGJEGYZÉS: A játéklogika (szimbólum generálás, klaszter keresés, nyeremény számítás) 
+    // már a szerveren történik a SlotMachineEngine-ben. Ez az osztály csak a kliens oldali 
+    // állapotkezelést és szerver kommunikációt biztosítja.
     public int[][] getSymbols() {
         return generatedSymbols;
     }
+    
     public void setBet(int s){
         bet = s;
-    }
-
-    public double getSpinPayout() {
-        return spinPayout;
     }
 
     public boolean isBonusMode() {
@@ -378,29 +170,8 @@ private int generateNonScatterSymbol() {
         bonusPayout = 0;
     }
 
-    public boolean checkForBonusTrigger() {
-        int scatterCount = 0;
-        for (int row = 0; row < GRID_SIZE; row++) {
-            for (int col = 0; col < GRID_SIZE; col++) {
-                if (generatedSymbols[row][col] == SCATTER_SYMBOL) {
-                    scatterCount++;
-                }
-            }
-        }
-        return scatterCount >= BONUS_TRIGGER_COUNT;
-    }
-
-    public boolean checkForRetrigger() {
-        int scatterCount = 0;
-        for (int row = 0; row < GRID_SIZE; row++) {
-            for (int col = 0; col < GRID_SIZE; col++) {
-                if (generatedSymbols[row][col] == SCATTER_SYMBOL) {
-                    scatterCount++;
-                }
-            }
-        }
-        return scatterCount >= RETRIGGER_COUNT;
-    }
+    // MEGJEGYZÉS: checkForBonusTrigger() és checkForRetrigger() metódusok már 
+    // a szerveren vannak a SlotMachineEngine-ben, ezért eltávolítottuk őket.
 
     public void addRetriggerSpins() {
         remainingFreeSpins += RETRIGGER_SPINS;

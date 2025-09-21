@@ -2,16 +2,21 @@ package com.example.slotmachine.server.dto;
 
 public class SpinRequest {
     private Integer betAmount;
-    private int[][] symbols; // A kliens által generált szimbólumok
-    private Double payout; // A kliens által számított nyeremény
+    private Boolean isBonusMode; // Bonus mód jelzése
 
     // Constructors
     public SpinRequest() {}
 
+    public SpinRequest(Integer betAmount, Boolean isBonusMode) {
+        this.betAmount = betAmount;
+        this.isBonusMode = isBonusMode != null ? isBonusMode : false;
+    }
+
+    // Backward compatibility constructor (régi kliens támogatáshoz)
     public SpinRequest(Integer betAmount, int[][] symbols, Double payout) {
         this.betAmount = betAmount;
-        this.symbols = symbols;
-        this.payout = payout;
+        this.isBonusMode = false;
+        // Régi paramétereket figyelmen kívül hagyjuk, a szerver generálja a szimbólumokat
     }
 
     // Getters and Setters
@@ -23,19 +28,32 @@ public class SpinRequest {
         this.betAmount = betAmount;
     }
 
+    public Boolean getIsBonusMode() {
+        return isBonusMode != null ? isBonusMode : false;
+    }
+
+    public void setIsBonusMode(Boolean isBonusMode) {
+        this.isBonusMode = isBonusMode;
+    }
+
+    // Backward compatibility getters (régi kliens támogatáshoz)
+    @Deprecated
     public int[][] getSymbols() {
-        return symbols;
+        return null; // Már nem használjuk
     }
 
+    @Deprecated
     public void setSymbols(int[][] symbols) {
-        this.symbols = symbols;
+        // Már nem használjuk
     }
 
+    @Deprecated
     public Double getPayout() {
-        return payout;
+        return null; // Már nem használjuk
     }
 
+    @Deprecated
     public void setPayout(Double payout) {
-        this.payout = payout;
+        // Már nem használjuk
     }
 }

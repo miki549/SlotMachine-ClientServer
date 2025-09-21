@@ -5,6 +5,7 @@ import com.example.slotmachine.client.ServerConfigDialog;
 import com.example.slotmachine.client.LoginDialog;
 import com.example.slotmachine.server.dto.LoginResponse;
 import com.example.slotmachine.server.dto.BalanceResponse;
+import com.example.slotmachine.server.dto.SpinResponse;
 import javafx.animation.*;
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -1015,17 +1016,12 @@ public class SlotMachineGUI extends Application {
             game.decreaseBalance(game.getBet());
             balanceText.setText("Credit: $" + game.getBalance());
             
-            // Online módban előbb végezzük el a spint, majd küldjük a szerverre
-            performSpin(() -> checkAndProcessClusters(() -> {
-                double spinPayout = game.getSpinPayout();
-                
-                // Szerver kommunikáció
+            // Új logika: a szerver generálja a szimbólumokat és feldolgozza a spint
                 if (game.isOnline()) {
-                    boolean success = game.processSpinOnServer(game.getBet(), spinPayout);
-                    if (!success) {
-                        // Ha nem sikerült a szerveren, visszavonjuk a lokális változásokat
+                SpinResponse spinResponse = game.processSpinOnServer(game.getBet(), isBonusMode);
+                if (spinResponse == null || !spinResponse.isSuccess()) {
+                    // Ha nem sikerült a szerveren
                         game.increaseBalance(game.getBet()); // Visszaadjuk a tétet
-                        game.resetSpinPayout();
                         game.setSpinning(false); // Spin vége
                         balanceText.setText("Credit: $" + game.getBalance());
                         spinsRemaining--;
@@ -1033,19 +1029,19 @@ public class SlotMachineGUI extends Application {
                         pause.setOnFinished(_ -> processNextStep());
                         pause.play();
                         return;
-                    }
                 }
                 
-                // A szerver már hozzáadta a nyereményt, nem kell lokálisan hozzáadni
-                
-                game.resetSpinPayout();
+                // Spin animáció a szerver által generált szimbólumokkal
+                performSpinWithServerData(spinResponse, () -> {
+                    // A szerver már hozzáadta a nyereményt a balance-hoz
                 game.setSpinning(false); // Spin vége
                 balanceText.setText("Credit: $" + game.getBalance());
 
-                if (spinPayout > 0) {
+                    double totalPayout = spinResponse.getTotalPayout();
+                    if (totalPayout > 0) {
                     int bet = game.getBet();
-                    int multiplier = (int) Math.ceil(spinPayout / bet);
-                    showWinningPopup(spinPayout, multiplier, () -> {
+                        int multiplier = (int) Math.ceil(totalPayout / bet);
+                        showWinningPopup(totalPayout, multiplier, () -> {
                         spinsRemaining--;
                         // If autospin is being stopped, set remaining spins to 0 to stop after this spin
                         if (isAutospinStopping) {
@@ -1067,26 +1063,47 @@ public class SlotMachineGUI extends Application {
                 }
 
                 // Check for bonus trigger
-                if (game.checkForBonusTrigger()) {
+                    if (spinResponse.isBonusTrigger()) {
                     startBonusMode();
                 }
+                });
+            } else {
+                // Offline mód - régi logika (nem használjuk már)
+                performSpin(() -> checkAndProcessClusters(() -> {
+                    // Offline logika...
             }));
+            }
         } else {
-            // Bonus mode spin
+            // Bonus mode spin - szerver-oldali logika
             if (game.hasFreeSpins()) {
                 disableButtons(true);
                 game.setSpinning(true); // Beállítjuk, hogy pörgetés van folyamatban
                 game.decreaseFreeSpins();
-                performSpin(() -> checkAndProcessClusters(() -> {
-                    double spinPayout = game.getSpinPayout();
-                    game.resetSpinPayout();
-                    game.addBonusPayout(spinPayout);
+                
+                if (game.isOnline()) {
+                    SpinResponse spinResponse = game.processSpinOnServer(game.getBet(), true); // Bonus mode
+                    if (spinResponse == null || !spinResponse.isSuccess()) {
+                        // Ha nem sikerült a szerveren
                     game.setSpinning(false); // Spin vége
+                        spinsRemaining--;
+                        PauseTransition pause = new PauseTransition(Duration.millis(500));
+                        pause.setOnFinished(_ -> processNextStep());
+                        pause.play();
+                        return;
+                    }
+                    
+                    // Bonus payout hozzáadása
+                    game.addBonusPayout(spinResponse.getTotalPayout());
+                    
+                    // Spin animáció a szerver által generált szimbólumokkal
+                    performSpinWithServerData(spinResponse, () -> {
+                        game.setSpinning(false); // Spin vége
 
-                    if (spinPayout > 0) {
+                        double totalPayout = spinResponse.getTotalPayout();
+                        if (totalPayout > 0) {
                         int bet = game.getBet();
-                        int multiplier = (int) Math.ceil(spinPayout / bet);
-                        showWinningPopup(spinPayout, multiplier, () -> {
+                            int multiplier = (int) Math.ceil(totalPayout / bet);
+                            showWinningPopup(totalPayout, multiplier, () -> {
                             spinsRemaining--;
                             // If autospin is being stopped, set remaining spins to 0 to stop after this spin
                             if (isAutospinStopping) {
@@ -1108,7 +1125,7 @@ public class SlotMachineGUI extends Application {
                     }
 
                     // Check for retrigger
-                    if (game.checkForRetrigger()) {
+                        if (spinResponse.isRetrigger()) {
                         game.addRetriggerSpins();
                         retriggerSound.play();
                         showRetriggerPopup();
@@ -1118,16 +1135,299 @@ public class SlotMachineGUI extends Application {
                     if (!game.hasFreeSpins()) {
                         endBonusMode();
                     }
+                    });
+                } else {
+                    // Offline mód - régi logika (nem használjuk már)
+                    performSpin(() -> checkAndProcessClusters(() -> {
+                        // Offline logika...
                 }));
+                }
             } else {
                 endBonusMode();
             }
         }
     }
 
-    private void performSpin(Runnable onComplete) {
+    /**
+     * Spin animáció szerver által generált adatokkal
+     */
+    private void performSpinWithServerData(SpinResponse spinResponse, Runnable onComplete) {
+        // NE állítsuk be a szimbólumokat itt! Hagyjuk, hogy a performSpin animáció végén jelenjenek meg
+        
+        // Spin animáció lejátszása a szerver által generált szimbólumokkal
+        performSpinWithServerSymbols(spinResponse.getInitialGrid(), () -> {
+            // Kis késleltetés a spin befejezése és a cascade kezdése között
+            PauseTransition spinSettlePause = new PauseTransition(Duration.millis(300));
+            spinSettlePause.setOnFinished(_ -> {
+                // Most kezdhet a cascade animáció
+                animateCascadeSteps(spinResponse.getCascadeSteps(), 0, onComplete);
+            });
+            spinSettlePause.play();
+        });
+    }
+
+    /**
+     * Cascade lépések animálása
+     */
+    private void animateCascadeSteps(List<SpinResponse.CascadeStepDto> cascadeSteps, int currentStep, Runnable onComplete) {
+        if (currentStep >= cascadeSteps.size()) {
+            // Minden cascade lépés befejezve
+            winText.setVisible(false);
+            onComplete.run();
+            return;
+        }
+
+        SpinResponse.CascadeStepDto step = cascadeSteps.get(currentStep);
+        
+        // Cluster animáció
+        if (!step.getMatchedClusters().isEmpty()) {
+            // Cluster clearing animáció
+            animateClusterClearing(step.getMatchedClusters(), () -> {
+                // Cluster törlése után ki kell üríteni a matched pozíciókat
+                clearMatchedPositions(step.getMatchedClusters());
+                
+                // Grid frissítése a cascade lépés után (drop and refill animáció)
+                if (step.getGridAfterRefill() != null) {
+                    updateGridFromServer(step.getGridAfterRefill(), () -> {
+                        // Win szöveg frissítése
+                        if (step.getPayout() > 0) {
+                            winText.setText("WIN: $" + (int) step.getPayout());
+                            winText.setVisible(true);
+                        }
+                        
+                        // Következő cascade lépés
+                        PauseTransition pause = new PauseTransition(Duration.millis(500));
+                        pause.setOnFinished(_ -> animateCascadeSteps(cascadeSteps, currentStep + 1, onComplete));
+                        pause.play();
+                    });
+                } else {
+                    // Következő cascade lépés
+                    PauseTransition pause = new PauseTransition(Duration.millis(500));
+                    pause.setOnFinished(_ -> animateCascadeSteps(cascadeSteps, currentStep + 1, onComplete));
+                    pause.play();
+                }
+            });
+        } else {
+            // Nincs cluster, következő lépés
+            animateCascadeSteps(cascadeSteps, currentStep + 1, onComplete);
+        }
+    }
+
+    /**
+     * Matched pozíciók kiürítése
+     */
+    private void clearMatchedPositions(Map<Integer, List<int[]>> matchedClusters) {
+        for (Map.Entry<Integer, List<int[]>> entry : matchedClusters.entrySet()) {
+            for (int[] position : entry.getValue()) {
+                int row = position[0];
+                int col = position[1];
+                reels[row][col].setImage(null); // Üres hely
+            }
+        }
+    }
+
+    /**
+     * Grid frissítése szerver adatokkal - animált cascade utántöltéssel
+     */
+    private void updateGridFromServer(int[][] serverGrid, Runnable onComplete) {
+        // Használjuk a régi updateGridWithNewSymbols logikáját, de szerver adatokkal
+        updateGridWithServerSymbols(serverGrid, onComplete);
+    }
+
+    /**
+     * Grid frissítése szerver szimbólumokkal - animált utántöltés
+     */
+    private void updateGridWithServerSymbols(int[][] serverGrid, Runnable onComplete) {
+        final int DELAY_BETWEEN_COLUMNS = 100; // milliszekundumban a késleltetés mértéke
+        ParallelTransition columnsSequence = new ParallelTransition();
+
+        for (int col = 0; col < GRID_SIZE; col++) {
+            SequentialTransition columnTransition = new SequentialTransition();
+            boolean columnHasAnimations = false;
+
+            // Késleltetés hozzáadása az oszlopok közötti különbséghez
+            PauseTransition columnDelay = new PauseTransition(Duration.millis(DELAY_BETWEEN_COLUMNS * col));
+            columnTransition.getChildren().add(columnDelay);
+
+            for (int row = GRID_SIZE - 1; row >= 0; row--) {
+                if (reels[row][col].getImage() == null) {
+                    // Üres hely esetén szimbólumot keresünk felette
+                    int sourceRow = row - 1;
+                    while (sourceRow >= 0 && reels[sourceRow][col].getImage() == null) {
+                        sourceRow--;
+                    }
+
+                    if (sourceRow >= 0) {
+                        // Szimbólum mozgatása a `sourceRow`-ból a `row`-ba
+                        Image imageToMove = reels[sourceRow][col].getImage();
+                        reels[sourceRow][col].setImage(null); // Töröljük a forrássorból
+
+                        ImageView targetCell = reels[row][col];
+                        targetCell.setImage(imageToMove);
+                        targetCell.setTranslateY(-(row - sourceRow) * get("SymbolSize")); // Kiindulási hely beállítása
+
+                        TranslateTransition fallDown = new TranslateTransition(Duration.millis(30), targetCell);
+                        fallDown.setFromY(-(row - sourceRow) * get("SymbolSize")); // Mozgás kezdeti pontja
+                        fallDown.setToY(get("UpdateMoveDownToY")); // Túllendül a végső helyen
+                        fallDown.setInterpolator(Interpolator.EASE_OUT);
+
+                        for (int i = 0; i < GRID_SIZE; i++) {
+                            for (int j = GRID_SIZE - 1; j >= 0; j--) {
+                                reels[j][i].setOpacity(1.0);
+                            }
+                        }
+                        // Túllendülés után visszarántás a végleges helyre
+                        TranslateTransition moveBack = new TranslateTransition(Duration.millis(30), targetCell);
+                        moveBack.setFromY(get("UpdateMoveBackFromY"));
+                        moveBack.setToY(get("UpdateMoveBackToY"));
+                        moveBack.setInterpolator(Interpolator.EASE_IN);
+
+                        // Az animációk sorba rendezése
+                        SequentialTransition bounceTransition = new SequentialTransition(fallDown, moveBack);
+                        columnTransition.getChildren().add(bounceTransition);
+                    } else {
+                        // Nincs felette szimbólum, új szimbólum beszúrása a szerver adatok alapján
+                        if (row < serverGrid.length && col < serverGrid[row].length) {
+                            int symbolIndex = serverGrid[row][col];
+                            Image newSymbol = symbols[symbolIndex];
+                            for (int i = 0; i < GRID_SIZE; i++) {
+                                for (int j = GRID_SIZE - 1; j >= 0; j--) {
+                                    reels[j][i].setOpacity(1.0);
+                                }
+                            }
+
+                            ImageView targetCell = reels[row][col];
+                            targetCell.setTranslateY(-(row + 1) * get("SymbolSize")); // Kiindulási pont felülről
+                            targetCell.setImage(newSymbol);
+
+                            TranslateTransition fallIn = new TranslateTransition(Duration.millis(30), targetCell);
+                            fallIn.setFromY(-(row + 1) * get("SymbolSize")); // Kezdőpozíció
+                            fallIn.setToY(5); // Túllendül a végleges helyen
+                            fallIn.setInterpolator(Interpolator.EASE_OUT);
+
+                            // Túllendülés után visszarántás a végleges helyre
+                            TranslateTransition settleTransition = new TranslateTransition(Duration.millis(30), targetCell);
+                            settleTransition.setFromY(10);
+                            settleTransition.setToY(0);
+                            settleTransition.setInterpolator(Interpolator.EASE_IN);
+
+                            SequentialTransition bounceTransition = new SequentialTransition(fallIn, settleTransition);
+                            columnTransition.getChildren().add(bounceTransition);
+                        }
+                    }
+                    columnHasAnimations = true;
+                }
+            }
+
+            if (columnHasAnimations) {
+                int finalCol = col;
+                columnTransition.setOnFinished(_ -> {
+                    fallSounds[finalCol].stop(); // Megállítjuk az esetlegesen még futó hangot
+                    fallSounds[finalCol].setVolume(initialVolume); // Hangerő csökkentése, hogy ne legyen túl hangos
+                    fallSounds[finalCol].seek(Duration.ZERO);
+                    fallSounds[finalCol].play();
+                });
+                columnsSequence.getChildren().add(columnTransition);
+            }
+        }
+
+        if (!columnsSequence.getChildren().isEmpty()) {
+            columnsSequence.setOnFinished(_ -> onComplete.run());
+            columnsSequence.play();
+        } else {
+            // Nincs animáció, futtasd közvetlenül az onComplete-t
+            onComplete.run();
+        }
+    }
+
+    /**
+     * Spin animáció szerver által generált szimbólumokkal
+     */
+    private void performSpinWithServerSymbols(int[][] serverSymbols, Runnable onComplete) {
         final int generatedCycleStart = spinParams.totalCycles - GRID_SIZE;
-        int[][] generatedSymbols = game.generateSymbols();
+        List<Animation> columnAnimations = new ArrayList<>(GRID_SIZE);
+
+        for (int col = 0; col < GRID_SIZE; col++) {
+            final int column = col;
+
+            SequentialTransition columnSequence = new SequentialTransition();
+
+            PauseTransition pause = new PauseTransition(Duration.millis(col * spinParams.pauseDelay));
+            columnSequence.getChildren().add(pause);
+
+            Timeline spinTimeline = new Timeline();
+            GaussianBlur blur = new GaussianBlur(0);
+            for (int row = 0; row < GRID_SIZE; row++) {
+                reels[row][column].setEffect(blur);
+            }
+
+            Timeline blurTimeline = new Timeline(
+                    new KeyFrame(Duration.ZERO, new KeyValue(blur.radiusProperty(), 0)),
+                    new KeyFrame(Duration.millis((double) (spinParams.totalCycles * spinParams.cycleDuration) / 4), new KeyValue(blur.radiusProperty(), spinParams.maxBlurRadius)),
+                    new KeyFrame(Duration.millis((double) (3 * spinParams.totalCycles * spinParams.cycleDuration) / 4), new KeyValue(blur.radiusProperty(), spinParams.maxBlurRadius)),
+                    new KeyFrame(Duration.millis(spinParams.totalCycles * spinParams.cycleDuration), new KeyValue(blur.radiusProperty(), 0))
+            );
+            blurTimeline.setCycleCount(1);
+
+            for (int cycle = 0; cycle < spinParams.totalCycles; cycle++) {
+                int currentCycle = cycle;
+
+                spinTimeline.getKeyFrames().add(new KeyFrame(Duration.millis(spinParams.cycleDuration * currentCycle), _ -> {
+                    for (int row = GRID_SIZE - 1; row > 0; row--) {
+                        ImageView aboveSymbol = reels[row - 1][column];
+                        reels[row][column].setImage(aboveSymbol.getImage());
+                    }
+
+                    if (currentCycle < generatedCycleStart) {
+                        reels[0][column].setImage(symbols[random.nextInt(SYMBOL_COUNT)]);
+                    } else {
+                        int generatedIndex = currentCycle - generatedCycleStart;
+                        int invertedIndex = GRID_SIZE - generatedIndex - 1;
+                        // Használjuk a szerver által generált szimbólumokat
+                        reels[0][column].setImage(symbols[serverSymbols[invertedIndex][column]]);
+                    }
+
+                    for (int row = 0; row < GRID_SIZE; row++) {
+                        TranslateTransition transition = new TranslateTransition(Duration.millis(spinParams.transitionDuration), reels[row][column]);
+                        if (currentCycle == spinParams.totalCycles - 1) {
+                            int toY = get("SpinMoveToY");
+                            int fromY = get("SpinMoveFromY");
+                            transition.setFromY(fromY);
+                            transition.setToY(toY);
+                            transition.setInterpolator(Interpolator.EASE_OUT);
+                            int finalRow = row;
+                            transition.setOnFinished(_ -> {
+                                TranslateTransition settleTransition = new TranslateTransition(Duration.millis(spinParams.transitionDuration), reels[finalRow][column]);
+                                settleTransition.setFromY(toY);
+                                settleTransition.setToY(fromY);
+                                settleTransition.setOnFinished(_ -> {
+                                    // Do nothing
+                                });
+                                settleTransition.play();
+                            });
+                        }
+                        transition.play();
+                    }
+                }));
+            }
+            spinTimeline.setCycleCount(1);
+
+            ParallelTransition spinAndBlur = getParallelTransition(spinTimeline, blurTimeline, column);
+            columnSequence.getChildren().add(spinAndBlur);
+            columnAnimations.add(columnSequence);
+        }
+
+        ParallelTransition allColumns = new ParallelTransition();
+        allColumns.getChildren().addAll(columnAnimations);
+        allColumns.setOnFinished(_ -> onComplete.run());
+        allColumns.play();
+    }
+
+    private void performSpin(Runnable onComplete) {
+        // MEGJEGYZÉS: Ez a metódus már nem használatos, mivel minden játéklogika a szerveren történik
+        // Csak az offline mód támogatása miatt maradt, de soha nem hívódik meg
+        final int generatedCycleStart = spinParams.totalCycles - GRID_SIZE;
+        int[][] generatedSymbols = new int[GRID_SIZE][GRID_SIZE]; // Dummy grid
         List<Animation> columnAnimations = new ArrayList<>(GRID_SIZE);
 
         for (int col = 0; col < GRID_SIZE; col++) {
@@ -1227,21 +1527,10 @@ public class SlotMachineGUI extends Application {
     }
 
     private void checkAndProcessClusters(Runnable onComplete) {
-        Map<Integer, List<int[]>> matchedClusters = game.checkForMatches();
-        if (!matchedClusters.isEmpty()) {
-            game.clearMatchedSymbols(matchedClusters);
-            PauseTransition pause = new PauseTransition(Duration.millis(300)); // 500 ms várakozás
-            pause.setOnFinished(_ -> animateClusterClearing(matchedClusters, () -> {
-                game.dropAndRefillSymbols();
-                winText.setText("WIN: $" + (int) game.getSpinPayout());
-                winText.setVisible(true);
-                updateGridWithNewSymbols(() -> checkAndProcessClusters(onComplete));
-            }));
-            pause.play();
-        } else {
-            winText.setVisible(false);
-            onComplete.run();
-        }
+        // MEGJEGYZÉS: Ez a metódus már nem használatos, mivel minden játéklogika a szerveren történik
+        // Csak az offline mód támogatása miatt maradt, de soha nem hívódik meg
+        winText.setVisible(false);
+        onComplete.run();
     }
 
     private void playNextHitSound() {

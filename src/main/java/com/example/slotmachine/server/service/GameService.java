@@ -1,5 +1,6 @@
 package com.example.slotmachine.server.service;
 
+import com.example.slotmachine.server.dto.SpinResponse;
 import com.example.slotmachine.server.entity.GameTransaction;
 import com.example.slotmachine.server.entity.User;
 import com.example.slotmachine.server.repository.GameTransactionRepository;
@@ -10,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -21,13 +23,19 @@ public class GameService {
     @Autowired
     private GameTransactionRepository transactionRepository;
 
-    public boolean processSpin(String username, Integer betAmount, int[][] symbols, Double payout) {
+    @Autowired
+    private SlotMachineEngine slotMachineEngine;
+
+    /**
+     * Új spin feldolgozás - a szerver generálja a szimbólumokat és számítja a nyereményt
+     */
+    public SlotMachineEngine.SpinResult processSpinNew(String username, Integer betAmount, Boolean isBonusMode) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         // Ellenőrizzük, hogy van-e elég balance
         if (user.getBalance() < betAmount) {
-            return false;
+            throw new RuntimeException("Insufficient balance");
         }
 
         Double balanceBefore = user.getBalance();
@@ -46,23 +54,20 @@ public class GameService {
         );
         transactionRepository.save(betTransaction);
 
+        // Spin feldolgozása a játékmotor segítségével
+        SlotMachineEngine.SpinResult spinResult = slotMachineEngine.processSpin(betAmount, isBonusMode != null ? isBonusMode : false);
+
         // Ha van nyeremény, hozzáadjuk
-        if (payout > 0) {
+        if (spinResult.getTotalPayout() > 0) {
             Double balanceBeforeWin = user.getBalance();
             
-            // Szerver oldali nyeremény ellenőrzés (egyszerűsített)
-            Double serverPayout = calculateServerPayout(symbols, betAmount);
-            
-            // Biztonsági ellenőrzés: a kliens által küldött nyeremény ne legyen nagyobb a szerveren számítottnál
-            Double actualPayout = Math.min(payout, serverPayout);
-            
-            user.setBalance(user.getBalance() + actualPayout);
+            user.setBalance(user.getBalance() + spinResult.getTotalPayout());
             
             // Nyeremény tranzakció rögzítése
             GameTransaction winTransaction = new GameTransaction(
                     user,
                     GameTransaction.TransactionType.WIN,
-                    actualPayout,
+                    spinResult.getTotalPayout(),
                     balanceBeforeWin,
                     user.getBalance(),
                     "Spin win"
@@ -71,7 +76,22 @@ public class GameService {
         }
 
         userRepository.save(user);
-        return true;
+        return spinResult;
+    }
+
+    /**
+     * Régi spin feldolgozás - visszafelé kompatibilitáshoz
+     * Most már a szerver generálja a szimbólumokat, a kliens adatokat figyelmen kívül hagyjuk
+     */
+    @Deprecated
+    public boolean processSpin(String username, Integer betAmount, int[][] symbols, Double payout) {
+        // Backward compatibility - használjuk az új módszert, de figyelmen kívül hagyjuk a kliens adatait
+        try {
+            SlotMachineEngine.SpinResult result = processSpinNew(username, betAmount, false);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     // Egyszerűsített szerver oldali nyeremény számítás (biztonsági ellenőrzéshez)

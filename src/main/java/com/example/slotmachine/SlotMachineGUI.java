@@ -796,6 +796,16 @@ public class SlotMachineGUI extends Application {
 
             AtomicBoolean skipped = new AtomicBoolean(false); // nyilvántartja, hogy a felhasználó skippelte-e az animációt
             AtomicBoolean isPlaying = new AtomicBoolean(true);
+            
+            // Helper function to restore game music volume
+            Runnable restoreGameMusic = () -> {
+                Timeline backroundFadeIn = new Timeline(
+                        new KeyFrame(Duration.ZERO, new KeyValue(gameMusic.volumeProperty(), gameMusic.getVolume())),
+                        new KeyFrame(Duration.millis(1000), new KeyValue(gameMusic.volumeProperty(), originalVolume))
+                );
+                backroundFadeIn.play();
+            };
+            
             // Azonnali növekedési animáció
             Timeline numberAnimation = new Timeline(
                     new KeyFrame(Duration.ZERO, new KeyValue(new SimpleDoubleProperty(0), 0)),
@@ -816,13 +826,9 @@ public class SlotMachineGUI extends Application {
             numberAnimation.play();
             mediaPlayer.play();
 
-            // Popup bezárása után visszaállítjuk az eredeti hangerőt
+            // Popup bezárása után visszaállítjuk az eredeti hangerőt - zene végén
             mediaPlayer.setOnEndOfMedia(() -> {
-                Timeline backroundFadeIn = new Timeline(
-                        new KeyFrame(Duration.ZERO, new KeyValue(gameMusic.volumeProperty(), gameMusic.getVolume())),
-                        new KeyFrame(Duration.millis(1000), new KeyValue(gameMusic.volumeProperty(), originalVolume))
-                );
-                backroundFadeIn.play();
+                restoreGameMusic.run();
                 isPlaying.set(false);
             });
 
@@ -830,6 +836,10 @@ public class SlotMachineGUI extends Application {
                 if (!skipped.get() && event.getCode() == KeyCode.SPACE) {
                     payoutLabel.setText(String.format("$%d", (int)payout));
                     skipped.set(true);
+                    // Stop popup music and restore game music when skipping
+                    mediaPlayer.stop();
+                    restoreGameMusic.run();
+                    isPlaying.set(false);
                 } else if (!isPlaying.get()) {
                     popupStage.close();
                     onClose.run();
@@ -840,6 +850,10 @@ public class SlotMachineGUI extends Application {
                 if (!skipped.get()) {
                     payoutLabel.setText(String.format("$%d", (int)payout));
                     skipped.set(true);
+                    // Stop popup music and restore game music when skipping
+                    mediaPlayer.stop();
+                    restoreGameMusic.run();
+                    isPlaying.set(false);
                 } else if (!isPlaying.get()) {
                     popupStage.close();
                     onClose.run();
@@ -852,7 +866,14 @@ public class SlotMachineGUI extends Application {
 
             centerStage(popupStage, root.getScene());
 
-            popupStage.setOnCloseRequest(Event::consume);
+            popupStage.setOnCloseRequest(event -> {
+                event.consume();
+                // Ensure game music is restored when popup is closed
+                mediaPlayer.stop();
+                restoreGameMusic.run();
+                popupStage.close();
+                onClose.run();
+            });
 
             popupStage.show();
         });
@@ -1047,7 +1068,7 @@ public class SlotMachineGUI extends Application {
                         if (isAutospinStopping) {
                             spinsRemaining = 0;
                         }
-                        PauseTransition pause = new PauseTransition(Duration.millis(500));
+                        PauseTransition pause = new PauseTransition(Duration.millis(100));
                         pause.setOnFinished(_ -> processNextStep());
                         pause.play();
                     });
@@ -1057,7 +1078,7 @@ public class SlotMachineGUI extends Application {
                     if (isAutospinStopping) {
                         spinsRemaining = 0;
                     }
-                    PauseTransition pause = new PauseTransition(Duration.millis(500));
+                    PauseTransition pause = new PauseTransition(Duration.millis(100));
                     pause.setOnFinished(_ -> processNextStep());
                     pause.play();
                 }
@@ -1109,7 +1130,7 @@ public class SlotMachineGUI extends Application {
                             if (isAutospinStopping) {
                                 spinsRemaining = 0;
                             }
-                            PauseTransition pause = new PauseTransition(Duration.millis(500));
+                            PauseTransition pause = new PauseTransition(Duration.millis(250));
                             pause.setOnFinished(_ -> processNextStep());
                             pause.play();
                         });
@@ -1119,7 +1140,7 @@ public class SlotMachineGUI extends Application {
                         if (isAutospinStopping) {
                             spinsRemaining = 0;
                         }
-                        PauseTransition pause = new PauseTransition(Duration.millis(500));
+                        PauseTransition pause = new PauseTransition(Duration.millis(250));
                         pause.setOnFinished(_ -> processNextStep());
                         pause.play();
                     }
@@ -1181,6 +1202,12 @@ public class SlotMachineGUI extends Application {
         
         // Cluster animáció
         if (!step.getMatchedClusters().isEmpty()) {
+            // Win szöveg megjelenítése pontosan a robbanás pillanatában
+            if (step.getPayout() > 0) {
+                winText.setText("WIN: $" + (int) step.getPayout());
+                winText.setVisible(true);
+            }
+            
             // Cluster clearing animáció
             animateClusterClearing(step.getMatchedClusters(), () -> {
                 // Cluster törlése után ki kell üríteni a matched pozíciókat
@@ -1189,20 +1216,14 @@ public class SlotMachineGUI extends Application {
                 // Grid frissítése a cascade lépés után (drop and refill animáció)
                 if (step.getGridAfterRefill() != null) {
                     updateGridFromServer(step.getGridAfterRefill(), () -> {
-                        // Win szöveg frissítése
-                        if (step.getPayout() > 0) {
-                            winText.setText("WIN: $" + (int) step.getPayout());
-                            winText.setVisible(true);
-                        }
-                        
                         // Következő cascade lépés
-                        PauseTransition pause = new PauseTransition(Duration.millis(500));
+                        PauseTransition pause = new PauseTransition(Duration.millis(100));
                         pause.setOnFinished(_ -> animateCascadeSteps(cascadeSteps, currentStep + 1, onComplete));
                         pause.play();
                     });
                 } else {
                     // Következő cascade lépés
-                    PauseTransition pause = new PauseTransition(Duration.millis(500));
+                    PauseTransition pause = new PauseTransition(Duration.millis(100));
                     pause.setOnFinished(_ -> animateCascadeSteps(cascadeSteps, currentStep + 1, onComplete));
                     pause.play();
                 }

@@ -75,6 +75,7 @@ import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.example.slotmachine.ConfigManager.get;
+import static com.example.slotmachine.ConfigManager.getDouble;
 import static com.example.slotmachine.Funtions.centerStage;
 
 
@@ -688,15 +689,6 @@ public class SlotMachineGUI extends Application {
             percentageLabel.setText(String.format("Volume: %d%%", (int) (volume * 100))); // Százalék frissítése
         });
 
-        // Online módban nem szükséges a credit fájl betöltés
-        // Button addCreditsButton = new Button("Add Credits");
-        // addCreditsButton.getStyleClass().add("dialog-save-button");
-        // addCreditsButton.setStyle(String.format("-fx-font-size: %dpx;", get("AudioSettingsLabelFontSize")));
-        // addCreditsButton.setOnAction(_ -> {
-        //     volumeSettingsStage.close();
-        //     volumeSettingsStage = null;
-        //     showCreditFileChooser(primaryStage);
-        // });
 
         Button closeButton = new Button();
         closeButton.getStyleClass().add("dialog-close-button");
@@ -747,7 +739,7 @@ public class SlotMachineGUI extends Application {
     }
 
     private void showWinningPopup(double payout, int multiplier, Runnable onClose) {
-        multiplier = 101;
+        multiplier =101;
         if (multiplier <= 10) {
             onClose.run(); // Ha nincs jelentős nyeremény, folytatja az automatikus pörgetést
             return;
@@ -801,9 +793,19 @@ public class SlotMachineGUI extends Application {
             layout.setStyle("-fx-background-color: rgba(0, 0, 0, 0.7);"); // Teljes képernyős sötét háttér
             layout.setPrefSize(get("GameWidth"), get("GameHeight"));
 
-            // Create ImageView for bigwin.png
+            // Create ImageView for win popup
             ImageView messageImage = new ImageView(new Image("file:" + message));
-            messageImage.setFitWidth(400); // Nagyobb méret a bigwin képhez
+            
+            // Set image width based on win type from config
+            String imageWidthKey;
+            if (finalMultiplier > 100) {
+                imageWidthKey = "UltimateWinImageWidth";
+            } else if (finalMultiplier > 50) {
+                imageWidthKey = "MegaWinImageWidth";
+            } else {
+                imageWidthKey = "BigWinImageWidth";
+            }
+            messageImage.setFitWidth(get(imageWidthKey));
             messageImage.setPreserveRatio(true);
             messageImage.setScaleX(0);
             messageImage.setScaleY(0);
@@ -814,7 +816,7 @@ public class SlotMachineGUI extends Application {
             // Glow szín beállítása a multiplikátor alapján
             if (finalMultiplier > 100) {
                 // Ultimate Win - fényes lila
-                glowShadow.setColor(Color.web("#FF69B4")); // Hot Pink / fényes lila
+                glowShadow.setColor(Color.web("#bf00ff")); // Hot Pink / fényes lila
             } else if (finalMultiplier > 50) {
                 // Mega Win - pirosas
                 glowShadow.setColor(Color.web("#FF4444")); // Pirosas
@@ -831,35 +833,45 @@ public class SlotMachineGUI extends Application {
             // Csak a szélén glow, a kép eredeti marad
             messageImage.setEffect(glowShadow);
 
+            // Get animation parameters from config based on win type
+            String prefix;
+            if (finalMultiplier > 100) {
+                prefix = "UltimateWin";
+            } else if (finalMultiplier > 50) {
+                prefix = "MegaWin";
+            } else {
+                prefix = "BigWin";
+            }
+            
             // 1. Felnagyítás egy pontból (hirtelen)
-            ScaleTransition scaleUp = new ScaleTransition(Duration.millis(1000), messageImage);
-            scaleUp.setFromX(0);
-            scaleUp.setFromY(0);
-            scaleUp.setToX(1.2); // Nagyobb mint a végleges méret
-            scaleUp.setToY(1.2);
+            ScaleTransition scaleUp = new ScaleTransition(Duration.millis(get(prefix + "ScaleUpDuration")), messageImage);
+            scaleUp.setFromX(getDouble(prefix + "ScaleUpFromX"));
+            scaleUp.setFromY(getDouble(prefix + "ScaleUpFromY"));
+            scaleUp.setToX(getDouble(prefix + "ScaleUpToX")); // Nagyobb mint a végleges méret
+            scaleUp.setToY(getDouble(prefix + "ScaleUpToY"));
             scaleUp.setInterpolator(Interpolator.EASE_OUT);
 
             // 2. Rugózás vissza (kicsit kisebbre)
-            ScaleTransition scaleBack = new ScaleTransition(Duration.millis(800), messageImage);
-            scaleBack.setFromX(1.2);
-            scaleBack.setFromY(1.2);
-            scaleBack.setToX(1.0); // Végleges méret
-            scaleBack.setToY(1.0);
+            ScaleTransition scaleBack = new ScaleTransition(Duration.millis(get(prefix + "ScaleBackDuration")), messageImage);
+            scaleBack.setFromX(getDouble(prefix + "ScaleUpToX"));
+            scaleBack.setFromY(getDouble(prefix + "ScaleUpToY"));
+            scaleBack.setToX(getDouble(prefix + "ScaleBackToX")); // Végleges méret
+            scaleBack.setToY(getDouble(prefix + "ScaleBackToY"));
             scaleBack.setInterpolator(Interpolator.EASE_IN);
 
             // 3. Pulzálás (lassabban nagyobbodik-zsugorodik)
-            ScaleTransition pulseUp = new ScaleTransition(Duration.millis(1500), messageImage);
-            pulseUp.setFromX(1.0);
-            pulseUp.setFromY(1.0);
-            pulseUp.setToX(1.1);
-            pulseUp.setToY(1.1);
+            ScaleTransition pulseUp = new ScaleTransition(Duration.millis(get(prefix + "PulseDuration")), messageImage);
+            pulseUp.setFromX(getDouble(prefix + "ScaleBackToX"));
+            pulseUp.setFromY(getDouble(prefix + "ScaleBackToY"));
+            pulseUp.setToX(getDouble(prefix + "PulseMaxX"));
+            pulseUp.setToY(getDouble(prefix + "PulseMaxY"));
             pulseUp.setInterpolator(Interpolator.EASE_BOTH);
 
-            ScaleTransition pulseDown = new ScaleTransition(Duration.millis(1500), messageImage);
-            pulseDown.setFromX(1.1);
-            pulseDown.setFromY(1.1);
-            pulseDown.setToX(1.0);
-            pulseDown.setToY(1.0);
+            ScaleTransition pulseDown = new ScaleTransition(Duration.millis(get(prefix + "PulseDuration")), messageImage);
+            pulseDown.setFromX(getDouble(prefix + "PulseMaxX"));
+            pulseDown.setFromY(getDouble(prefix + "PulseMaxY"));
+            pulseDown.setToX(getDouble(prefix + "ScaleBackToX"));
+            pulseDown.setToY(getDouble(prefix + "ScaleBackToY"));
             pulseDown.setInterpolator(Interpolator.EASE_BOTH);
 
             // Pulzálás végtelen ciklusban
@@ -871,7 +883,24 @@ public class SlotMachineGUI extends Application {
             fullSequence.play();
 
             Label payoutLabel = new Label("$0");
-            payoutLabel.setStyle("-fx-font-size: 28px; -fx-text-fill: white;");
+            
+            // Set font size based on win type from config
+            String payoutFontSizeKey;
+            String cssClass;
+            if (finalMultiplier > 100) {
+                payoutFontSizeKey = "UltimateWinPayoutFontSize";
+                cssClass = "payout-text-ultimatewin";
+            } else if (finalMultiplier > 50) {
+                payoutFontSizeKey = "MegaWinPayoutFontSize";
+                cssClass = "payout-text-megawin";
+            } else {
+                payoutFontSizeKey = "BigWinPayoutFontSize";
+                cssClass = "payout-text-bigwin";
+            }
+            
+            // Add CSS class and set font size through CSS
+            payoutLabel.getStyleClass().add(cssClass);
+            payoutLabel.setStyle(String.format("-fx-font-size: %dpx; -fx-text-fill: #FFD700; -fx-font-family: 'khamenet';", get(payoutFontSizeKey)));
 
             // Kép feljebb pozicionálása - egyszerű VBox megoldás
             // Adjunk hozzá egy üres területet a tetején, hogy a kép feljebb kerüljön
@@ -927,17 +956,17 @@ public class SlotMachineGUI extends Application {
                 isPlaying.set(false);
                 
                 // Szép fade-out animáció a popup bezárásához
-                FadeTransition fadeOut = new FadeTransition(Duration.millis(1500), layout);
+                FadeTransition fadeOut = new FadeTransition(Duration.millis(get(prefix + "FadeOutDuration")), layout);
                 fadeOut.setFromValue(1.0);
                 fadeOut.setToValue(0.0);
                 fadeOut.setInterpolator(Interpolator.EASE_OUT);
                 
                 // Scale-down animáció a képhez
-                ScaleTransition scaleDown = new ScaleTransition(Duration.millis(1500), messageImage);
-                scaleDown.setFromX(1.0);
-                scaleDown.setFromY(1.0);
-                scaleDown.setToX(0.3);
-                scaleDown.setToY(0.3);
+                ScaleTransition scaleDown = new ScaleTransition(Duration.millis(get(prefix + "ScaleDownDuration")), messageImage);
+                scaleDown.setFromX(getDouble(prefix + "ScaleBackToX"));
+                scaleDown.setFromY(getDouble(prefix + "ScaleBackToY"));
+                scaleDown.setToX(getDouble(prefix + "ScaleDownToX"));
+                scaleDown.setToY(getDouble(prefix + "ScaleDownToY"));
                 scaleDown.setInterpolator(Interpolator.EASE_OUT);
                 
                 // Párhuzamos animációk

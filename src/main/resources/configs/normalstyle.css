@@ -347,3 +347,28 @@
     -fx-background-color: saddlebrown;
 }
 
+/* Win Popup Payout Text Styles */
+.payout-text-bigwin {
+    -fx-font-family: "khamenet";
+    -fx-text-fill: #FFD700;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.8), 3, 0.5, 2, 2);
+    -fx-font-weight: bold;
+    -fx-background-color: transparent;
+}
+
+.payout-text-megawin {
+    -fx-font-family: "khamenet";
+    -fx-text-fill: #FFD700;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.8), 4, 0.6, 2, 2);
+    -fx-font-weight: bold;
+    -fx-background-color: transparent;
+}
+
+.payout-text-ultimatewin {
+    -fx-font-family: "khamenet";
+    -fx-text-fill: #FFD700;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.8), 5, 0.7, 2, 2);
+    -fx-font-weight: bold;
+    -fx-background-color: transparent;
+}
+

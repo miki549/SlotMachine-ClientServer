@@ -30,4 +30,8 @@ public class ConfigManager {
     public static int get(String key) {
         return Integer.parseInt(config.getProperty(key));
     }
+    
+    public static double getDouble(String key) {
+        return Double.parseDouble(config.getProperty(key));
+    }
 }

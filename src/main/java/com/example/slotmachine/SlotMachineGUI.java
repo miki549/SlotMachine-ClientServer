@@ -35,6 +35,8 @@ import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.effect.GaussianBlur;
+import javafx.scene.effect.Glow;
+import javafx.scene.effect.InnerShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
@@ -46,6 +48,7 @@ import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.geometry.Insets;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.RowConstraints;
@@ -744,20 +747,25 @@ public class SlotMachineGUI extends Application {
     }
 
     private void showWinningPopup(double payout, int multiplier, Runnable onClose) {
+        multiplier = 101;
         if (multiplier <= 10) {
             onClose.run(); // Ha nincs jelentős nyeremény, folytatja az automatikus pörgetést
             return;
         }
+        
+        // Final változó a lambda kifejezéshez
+        final int finalMultiplier = multiplier;
+        
         String message,soundfile;
         if (multiplier > 100) {
-            message = "src/main/resources/pictures/gorgeous.png";
-            soundfile = "src/main/resources/sounds/gorgeous.mp3";
+            message = "src/main/resources/pictures/ultimatewin.png";
+            soundfile = "src/main/resources/sounds/ultimatewin.mp3";
         } else if (multiplier > 50) {
-            message = "src/main/resources/pictures/amazing.png";
-            soundfile = "src/main/resources/sounds/amazing.mp3";
+            message = "src/main/resources/pictures/megawin.png";
+            soundfile = "src/main/resources/sounds/megawin.mp3";
         } else {
-            message = "src/main/resources/pictures/fantastic.png";
-            soundfile = "src/main/resources/sounds/fantastic.mp3";
+            message = "src/main/resources/pictures/bigwin.png";
+            soundfile = "src/main/resources/sounds/bigwin.mp3";
         }
 
         Media sound = new Media(new File(soundfile).toURI().toString());
@@ -787,40 +795,96 @@ public class SlotMachineGUI extends Application {
             popupStage.initModality(Modality.WINDOW_MODAL);
             popupStage.initStyle(StageStyle.TRANSPARENT);
 
-            VBox layout = new VBox(10);
+            // Teljes képernyős sötét háttér
+            VBox layout = new VBox(50); // Nagyobb távolság a kép és nyeremény között
             layout.setAlignment(Pos.CENTER);
-            layout.setStyle("-fx-background-color: rgba(0, 0, 0, 0.8); -fx-background-radius: 20; -fx-padding: 20;");
-            layout.setEffect(new DropShadow(20, Color.BLACK));
+            layout.setStyle("-fx-background-color: rgba(0, 0, 0, 0.7);"); // Teljes képernyős sötét háttér
+            layout.setPrefSize(get("GameWidth"), get("GameHeight"));
 
-            // Create ImageView instead of Label for the message
+            // Create ImageView for bigwin.png
             ImageView messageImage = new ImageView(new Image("file:" + message));
-            messageImage.setFitWidth(300); // Set appropriate size
+            messageImage.setFitWidth(400); // Nagyobb méret a bigwin képhez
             messageImage.setPreserveRatio(true);
             messageImage.setScaleX(0);
             messageImage.setScaleY(0);
+            
+            // Fényes glow effekt csak a szélén - szín a multiplikátor alapján
+            DropShadow glowShadow = new DropShadow();
+            
+            // Glow szín beállítása a multiplikátor alapján
+            if (finalMultiplier > 100) {
+                // Ultimate Win - fényes lila
+                glowShadow.setColor(Color.web("#FF69B4")); // Hot Pink / fényes lila
+            } else if (finalMultiplier > 50) {
+                // Mega Win - pirosas
+                glowShadow.setColor(Color.web("#FF4444")); // Pirosas
+            } else {
+                // Big Win - sárga (eredeti)
+                glowShadow.setColor(Color.YELLOW);
+            }
+            
+            glowShadow.setRadius(300); // Nagy sugár a messzebbre érő glow-ért
+            glowShadow.setSpread(0.5); // Szélesebb terjeszkedés
+            glowShadow.setOffsetX(0); // Nincs eltolás
+            glowShadow.setOffsetY(0); // Nincs eltolás
+            
+            // Csak a szélén glow, a kép eredeti marad
+            messageImage.setEffect(glowShadow);
 
-            // Create scaling animation
+            // 1. Felnagyítás egy pontból (hirtelen)
             ScaleTransition scaleUp = new ScaleTransition(Duration.millis(1000), messageImage);
             scaleUp.setFromX(0);
             scaleUp.setFromY(0);
-            scaleUp.setToX(3); // Scale up
-            scaleUp.setToY(3);
+            scaleUp.setToX(1.2); // Nagyobb mint a végleges méret
+            scaleUp.setToY(1.2);
             scaleUp.setInterpolator(Interpolator.EASE_OUT);
 
-            ScaleTransition scaleBack = new ScaleTransition(Duration.millis(500), messageImage);
-            scaleBack.setFromX(3);
-            scaleBack.setFromY(3);
-            scaleBack.setToX(2.8); // Scale back a bit
-            scaleBack.setToY(2.8);
+            // 2. Rugózás vissza (kicsit kisebbre)
+            ScaleTransition scaleBack = new ScaleTransition(Duration.millis(800), messageImage);
+            scaleBack.setFromX(1.2);
+            scaleBack.setFromY(1.2);
+            scaleBack.setToX(1.0); // Végleges méret
+            scaleBack.setToY(1.0);
             scaleBack.setInterpolator(Interpolator.EASE_IN);
 
-            SequentialTransition scaleSequence = new SequentialTransition(scaleUp, scaleBack);
-            scaleSequence.play();
+            // 3. Pulzálás (lassabban nagyobbodik-zsugorodik)
+            ScaleTransition pulseUp = new ScaleTransition(Duration.millis(1500), messageImage);
+            pulseUp.setFromX(1.0);
+            pulseUp.setFromY(1.0);
+            pulseUp.setToX(1.1);
+            pulseUp.setToY(1.1);
+            pulseUp.setInterpolator(Interpolator.EASE_BOTH);
+
+            ScaleTransition pulseDown = new ScaleTransition(Duration.millis(1500), messageImage);
+            pulseDown.setFromX(1.1);
+            pulseDown.setFromY(1.1);
+            pulseDown.setToX(1.0);
+            pulseDown.setToY(1.0);
+            pulseDown.setInterpolator(Interpolator.EASE_BOTH);
+
+            // Pulzálás végtelen ciklusban
+            SequentialTransition pulseSequence = new SequentialTransition(pulseUp, pulseDown);
+            pulseSequence.setCycleCount(Animation.INDEFINITE);
+
+            // Teljes animációs szekvencia
+            SequentialTransition fullSequence = new SequentialTransition(scaleUp, scaleBack, pulseSequence);
+            fullSequence.play();
 
             Label payoutLabel = new Label("$0");
             payoutLabel.setStyle("-fx-font-size: 28px; -fx-text-fill: white;");
 
-            layout.getChildren().addAll(messageImage, payoutLabel);
+            // Kép feljebb pozicionálása - egyszerű VBox megoldás
+            // Adjunk hozzá egy üres területet a tetején, hogy a kép feljebb kerüljön
+            Region topSpacer = new Region();
+            topSpacer.setPrefHeight(get("GameHeight") * 0.15); // 15% üres hely felül
+            
+            Region middleSpacer = new Region();
+            middleSpacer.setPrefHeight(get("GameHeight") * 0.25); // 25% középen a kép és nyeremény között
+            
+            Region bottomSpacer = new Region();
+            bottomSpacer.setPrefHeight(get("GameHeight") * 0.1); // 10% alul
+            
+            layout.getChildren().addAll(topSpacer, messageImage, middleSpacer, payoutLabel, bottomSpacer);
 
             Scene scene = new Scene(layout);
             scene.setFill(Color.TRANSPARENT);
@@ -857,43 +921,55 @@ public class SlotMachineGUI extends Application {
             numberAnimation.play();
             mediaPlayer.play();
 
-            // Popup bezárása után visszaállítjuk az eredeti hangerőt - zene végén
+            // Popup bezárása a zene végén - szép fade-out animációval
             mediaPlayer.setOnEndOfMedia(() -> {
                 restoreGameMusic.run();
                 isPlaying.set(false);
+                
+                // Szép fade-out animáció a popup bezárásához
+                FadeTransition fadeOut = new FadeTransition(Duration.millis(1500), layout);
+                fadeOut.setFromValue(1.0);
+                fadeOut.setToValue(0.0);
+                fadeOut.setInterpolator(Interpolator.EASE_OUT);
+                
+                // Scale-down animáció a képhez
+                ScaleTransition scaleDown = new ScaleTransition(Duration.millis(1500), messageImage);
+                scaleDown.setFromX(1.0);
+                scaleDown.setFromY(1.0);
+                scaleDown.setToX(0.3);
+                scaleDown.setToY(0.3);
+                scaleDown.setInterpolator(Interpolator.EASE_OUT);
+                
+                // Párhuzamos animációk
+                ParallelTransition closeAnimation = new ParallelTransition(fadeOut, scaleDown);
+                closeAnimation.setOnFinished(event -> {
+                    popupStage.close();
+                    onClose.run();
+                });
+                closeAnimation.play();
             });
 
             scene.setOnKeyPressed(event -> {
                 if (!skipped.get() && event.getCode() == KeyCode.SPACE) {
+                    // Csak a nyeremény kiírás ugrik a végére, a zene és animáció folytatódik
                     payoutLabel.setText(String.format("$%d", (int)payout));
                     skipped.set(true);
-                    // Stop popup music and restore game music when skipping
-                    mediaPlayer.stop();
-                    restoreGameMusic.run();
-                    isPlaying.set(false);
-                } else if (!isPlaying.get()) {
-                    popupStage.close();
-                    onClose.run();
                 }
+                // Kattintásra nem áll le a popup, csak a zene végén
             });
 
             scene.setOnMouseClicked(_ -> {
                 if (!skipped.get()) {
+                    // Csak a nyeremény kiírás ugrik a végére, a zene és animáció folytatódik
                     payoutLabel.setText(String.format("$%d", (int)payout));
                     skipped.set(true);
-                    // Stop popup music and restore game music when skipping
-                    mediaPlayer.stop();
-                    restoreGameMusic.run();
-                    isPlaying.set(false);
-                } else if (!isPlaying.get()) {
-                    popupStage.close();
-                    onClose.run();
                 }
+                // Kattintásra nem áll le a popup, csak a zene végén
             });
 
             popupStage.setScene(scene);
-            popupStage.setWidth(((double) get("GameWidth") /3)*2);
-            popupStage.setHeight(((double) get("GameHeight") /3)*2);
+            popupStage.setWidth(get("GameWidth")); // Teljes képernyő szélesség
+            popupStage.setHeight(get("GameHeight")); // Teljes képernyő magasság
 
             centerStage(popupStage, root.getScene());
 

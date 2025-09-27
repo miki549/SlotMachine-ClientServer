@@ -4,7 +4,6 @@ import com.example.slotmachine.client.ApiClient;
 import com.example.slotmachine.server.dto.BalanceResponse;
 import com.example.slotmachine.server.dto.SpinResponse;
 
-import java.util.*;
 
 import static com.example.slotmachine.GameSettings.*;
 
@@ -76,12 +75,6 @@ public class SlotMachine {
         }
     }
 
-    // Backward compatibility - régi spin feldolgozás
-    @Deprecated
-    public boolean processSpinOnServer(int betAmount, double payout) {
-        SpinResponse response = processSpinOnServer(betAmount, false);
-        return response != null && response.isSuccess();
-    }
 
     // Grid másolása
     private void copyGridTo(int[][] source, int[][] target) {
@@ -134,9 +127,6 @@ public class SlotMachine {
             this.bet -= BET_STEP;
         }
     }
-    // MEGJEGYZÉS: A játéklogika (szimbólum generálás, klaszter keresés, nyeremény számítás) 
-    // már a szerveren történik a SlotMachineEngine-ben. Ez az osztály csak a kliens oldali 
-    // állapotkezelést és szerver kommunikációt biztosítja.
     public int[][] getSymbols() {
         return generatedSymbols;
     }
@@ -170,8 +160,6 @@ public class SlotMachine {
         bonusPayout = 0;
     }
 
-    // MEGJEGYZÉS: checkForBonusTrigger() és checkForRetrigger() metódusok már 
-    // a szerveren vannak a SlotMachineEngine-ben, ezért eltávolítottuk őket.
 
     public void addRetriggerSpins() {
         remainingFreeSpins += RETRIGGER_SPINS;

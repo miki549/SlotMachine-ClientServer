@@ -175,15 +175,6 @@ public class ApiClient {
         }
     }
 
-    /**
-     * Régi spin feldolgozás - visszafelé kompatibilitáshoz
-     * Most már figyelmen kívül hagyjuk a kliens által generált szimbólumokat és számított nyereményt
-     */
-    @Deprecated
-    public SpinResponse processSpin(Integer betAmount, int[][] symbols, Double payout) throws IOException, InterruptedException {
-        // Backward compatibility - használjuk az új módszert, de figyelmen kívül hagyjuk a kliens adatait
-        return processSpin(betAmount, false);
-    }
 
     public boolean isConnected() {
         try {

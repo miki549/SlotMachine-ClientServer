@@ -116,16 +116,6 @@ public class SpinResponse {
         this.retrigger = retrigger;
     }
 
-    // Backward compatibility getter
-    @Deprecated
-    public Double getPayout() {
-        return totalPayout; // Visszafelé kompatibilitás
-    }
-
-    @Deprecated
-    public void setPayout(Double payout) {
-        this.totalPayout = payout; // Visszafelé kompatibilitás
-    }
 
     /**
      * Cascade lépés DTO

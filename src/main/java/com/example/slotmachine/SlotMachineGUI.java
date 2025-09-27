@@ -6,7 +6,17 @@ import com.example.slotmachine.client.LoginDialog;
 import com.example.slotmachine.server.dto.LoginResponse;
 import com.example.slotmachine.server.dto.BalanceResponse;
 import com.example.slotmachine.server.dto.SpinResponse;
-import javafx.animation.*;
+import javafx.animation.Animation;
+import javafx.animation.FadeTransition;
+import javafx.animation.Interpolator;
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+import javafx.animation.ParallelTransition;
+import javafx.animation.PauseTransition;
+import javafx.animation.ScaleTransition;
+import javafx.animation.SequentialTransition;
+import javafx.animation.Timeline;
+import javafx.animation.TranslateTransition;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleDoubleProperty;
@@ -16,14 +26,31 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Group;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.ContentDisplay;
+import javafx.scene.control.Control;
+import javafx.scene.control.Label;
+import javafx.scene.control.Slider;
+import javafx.scene.control.TextField;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.effect.GaussianBlur;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
-import javafx.scene.layout.*;
+import javafx.scene.layout.Background;
+import javafx.scene.layout.BackgroundFill;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.ColumnConstraints;
+import javafx.scene.layout.CornerRadii;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.RowConstraints;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.media.Media;
 import javafx.scene.paint.Color;
@@ -37,7 +64,11 @@ import javafx.util.Duration;
 import javafx.util.StringConverter;
 
 import java.io.File;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.example.slotmachine.ConfigManager.get;
@@ -1088,11 +1119,6 @@ public class SlotMachineGUI extends Application {
                     startBonusMode();
                 }
                 });
-            } else {
-                // Offline mód - régi logika (nem használjuk már)
-                performSpin(() -> checkAndProcessClusters(() -> {
-                    // Offline logika...
-            }));
             }
         } else {
             // Bonus mode spin - szerver-oldali logika
@@ -1157,11 +1183,6 @@ public class SlotMachineGUI extends Application {
                         endBonusMode();
                     }
                     });
-                } else {
-                    // Offline mód - régi logika (nem használjuk már)
-                    performSpin(() -> checkAndProcessClusters(() -> {
-                        // Offline logika...
-                }));
                 }
             } else {
                 endBonusMode();
@@ -1444,87 +1465,6 @@ public class SlotMachineGUI extends Application {
         allColumns.play();
     }
 
-    private void performSpin(Runnable onComplete) {
-        // MEGJEGYZÉS: Ez a metódus már nem használatos, mivel minden játéklogika a szerveren történik
-        // Csak az offline mód támogatása miatt maradt, de soha nem hívódik meg
-        final int generatedCycleStart = spinParams.totalCycles - GRID_SIZE;
-        int[][] generatedSymbols = new int[GRID_SIZE][GRID_SIZE]; // Dummy grid
-        List<Animation> columnAnimations = new ArrayList<>(GRID_SIZE);
-
-        for (int col = 0; col < GRID_SIZE; col++) {
-            final int column = col;
-
-            SequentialTransition columnSequence = new SequentialTransition();
-
-            PauseTransition pause = new PauseTransition(Duration.millis(col * spinParams.pauseDelay));
-            columnSequence.getChildren().add(pause);
-
-            Timeline spinTimeline = new Timeline();
-            GaussianBlur blur = new GaussianBlur(0);
-            for (int row = 0; row < GRID_SIZE; row++) {
-                reels[row][column].setEffect(blur);
-            }
-
-            Timeline blurTimeline = new Timeline(
-                    new KeyFrame(Duration.ZERO, new KeyValue(blur.radiusProperty(), 0)),
-                    new KeyFrame(Duration.millis((double) (spinParams.totalCycles * spinParams.cycleDuration) / 4), new KeyValue(blur.radiusProperty(), spinParams.maxBlurRadius)),
-                    new KeyFrame(Duration.millis((double) (3 * spinParams.totalCycles * spinParams.cycleDuration) / 4), new KeyValue(blur.radiusProperty(), spinParams.maxBlurRadius)),
-                    new KeyFrame(Duration.millis(spinParams.totalCycles * spinParams.cycleDuration), new KeyValue(blur.radiusProperty(), 0))
-            );
-            blurTimeline.setCycleCount(1);
-
-            for (int cycle = 0; cycle < spinParams.totalCycles; cycle++) {
-                int currentCycle = cycle;
-
-                spinTimeline.getKeyFrames().add(new KeyFrame(Duration.millis(spinParams.cycleDuration * currentCycle), _ -> {
-                    for (int row = GRID_SIZE - 1; row > 0; row--) {
-                        ImageView aboveSymbol = reels[row - 1][column];
-                        reels[row][column].setImage(aboveSymbol.getImage());
-                    }
-
-                    if (currentCycle < generatedCycleStart) {
-                        reels[0][column].setImage(symbols[random.nextInt(SYMBOL_COUNT)]);
-                    } else {
-                        int generatedIndex = currentCycle - generatedCycleStart;
-                        int invertedIndex = GRID_SIZE - generatedIndex - 1;
-                        reels[0][column].setImage(symbols[generatedSymbols[invertedIndex][column]]);
-                    }
-
-                    for (int row = 0; row < GRID_SIZE; row++) {
-                        TranslateTransition transition = new TranslateTransition(Duration.millis(spinParams.transitionDuration), reels[row][column]);
-                        if (currentCycle == spinParams.totalCycles - 1) {
-                            int toY = get("SpinMoveToY");
-                            int fromY = get("SpinMoveFromY");
-                            transition.setFromY(fromY);
-                            transition.setToY(toY);
-                            transition.setInterpolator(Interpolator.EASE_OUT);
-                            int finalRow = row;
-                            transition.setOnFinished(_ -> {
-                                TranslateTransition settleTransition = new TranslateTransition(Duration.millis(spinParams.transitionDuration), reels[finalRow][column]);
-                                settleTransition.setFromY(toY);
-                                settleTransition.setToY(fromY);
-                                settleTransition.setOnFinished(_ -> {
-                                    // Do nothing
-                                });
-                                settleTransition.play();
-                            });
-                        }
-                        transition.play();
-                    }
-                }));
-            }
-            spinTimeline.setCycleCount(1);
-
-            ParallelTransition spinAndBlur = getParallelTransition(spinTimeline, blurTimeline, column);
-            columnSequence.getChildren().add(spinAndBlur);
-            columnAnimations.add(columnSequence);
-        }
-
-        ParallelTransition allColumns = new ParallelTransition();
-        allColumns.getChildren().addAll(columnAnimations);
-        allColumns.setOnFinished(_ -> onComplete.run());
-        allColumns.play();
-    }
 
     private ParallelTransition getParallelTransition(Timeline spinTimeline, Timeline blurTimeline, int column) {
         ParallelTransition spinAndBlur = new ParallelTransition(spinTimeline, blurTimeline);
@@ -1547,12 +1487,6 @@ public class SlotMachineGUI extends Application {
         return spinAndBlur;
     }
 
-    private void checkAndProcessClusters(Runnable onComplete) {
-        // MEGJEGYZÉS: Ez a metódus már nem használatos, mivel minden játéklogika a szerveren történik
-        // Csak az offline mód támogatása miatt maradt, de soha nem hívódik meg
-        winText.setVisible(false);
-        onComplete.run();
-    }
 
     private void playNextHitSound() {
         // Előző hang leállítása, ha még szólna

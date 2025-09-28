@@ -479,7 +479,11 @@ public class SlotMachineGUI extends Application {
         root.setLeft(leftPanel);
         root.setBottom(new BorderPane(bottomLeftPanel, null, bottomRightPanel, null, null));
 
-        Scene scene = new Scene(root, get("GameWidth"), get("GameHeight"));
+        // Create StackPane for overlay support (popup overlays)
+        StackPane gameStackPane = new StackPane();
+        gameStackPane.getChildren().add(root);
+        
+        Scene scene = new Scene(gameStackPane, get("GameWidth"), get("GameHeight"));
         scene.getStylesheets().add("file:src/main/resources/configs/normalstyle.css");
 
 
@@ -783,10 +787,7 @@ public class SlotMachineGUI extends Application {
             popupFadeIn.play();
 
             double duration = sound.getDuration().toSeconds();
-            Stage popupStage = new Stage();
-            popupStage.initModality(Modality.WINDOW_MODAL);
-            popupStage.initStyle(StageStyle.TRANSPARENT);
-
+            
             // Teljes képernyős sötét háttér
             VBox layout = new VBox(50); // Nagyobb távolság a kép és nyeremény között
             layout.setAlignment(Pos.CENTER);
@@ -915,11 +916,9 @@ public class SlotMachineGUI extends Application {
             
             layout.getChildren().addAll(topSpacer, messageImage, middleSpacer, payoutLabel, bottomSpacer);
 
-            Scene scene = new Scene(layout);
-            scene.setFill(Color.TRANSPARENT);
-
             AtomicBoolean skipped = new AtomicBoolean(false); // nyilvántartja, hogy a felhasználó skippelte-e az animációt
             AtomicBoolean isPlaying = new AtomicBoolean(true);
+            AtomicBoolean isClosing = new AtomicBoolean(false); // megakadályozza a dupla bezárást
             
             // Helper function to restore game music volume
             Runnable restoreGameMusic = () -> {
@@ -947,12 +946,12 @@ public class SlotMachineGUI extends Application {
                 }
             });
 
-            numberAnimation.play();
-            mediaPlayer.play();
-
-            // Popup bezárása a zene végén - szép fade-out animációval
-            mediaPlayer.setOnEndOfMedia(() -> {
-                restoreGameMusic.run();
+            // Helper function to close popup with animations
+            Runnable closePopup = () -> {
+                if (isClosing.get()) {
+                    return; // Már bezárás alatt van, ne zárjuk be újra
+                }
+                isClosing.set(true);
                 isPlaying.set(false);
                 
                 // Szép fade-out animáció a popup bezárásához
@@ -972,22 +971,34 @@ public class SlotMachineGUI extends Application {
                 // Párhuzamos animációk
                 ParallelTransition closeAnimation = new ParallelTransition(fadeOut, scaleDown);
                 closeAnimation.setOnFinished(event -> {
-                    popupStage.close();
+                    // Zene leállítása és háttérzene helyreállítása az animációk végén
+                    mediaPlayer.stop();
+                    restoreGameMusic.run();
+                    
+                    // Remove popup overlay from StackPane
+                    StackPane gameStackPane = (StackPane) root.getScene().getRoot();
+                    gameStackPane.getChildren().remove(layout);
                     onClose.run();
                 });
                 closeAnimation.play();
-            });
+            };
 
-            scene.setOnKeyPressed(event -> {
-                if (!skipped.get() && event.getCode() == KeyCode.SPACE) {
-                    // Csak a nyeremény kiírás ugrik a végére, a zene és animáció folytatódik
-                    payoutLabel.setText(String.format("$%d", (int)payout));
-                    skipped.set(true);
+            // Popup bezárása a zene végén - Timeline használata a MediaPlayer helyett
+            mediaPlayer.setOnEndOfMedia(closePopup::run);
+            
+            // Backup: Timeline alapú bezárás a zene hossza alapján
+            Timeline closeTimer = new Timeline(new KeyFrame(Duration.seconds(duration), _ -> {
+                if (isPlaying.get() && !isClosing.get()) {
+                    closePopup.run();
                 }
-                // Kattintásra nem áll le a popup, csak a zene végén
-            });
+            }));
+            closeTimer.play();
 
-            scene.setOnMouseClicked(_ -> {
+            numberAnimation.play();
+            mediaPlayer.play();
+
+
+            layout.setOnMouseClicked(_ -> {
                 if (!skipped.get()) {
                     // Csak a nyeremény kiírás ugrik a végére, a zene és animáció folytatódik
                     payoutLabel.setText(String.format("$%d", (int)payout));
@@ -995,23 +1006,26 @@ public class SlotMachineGUI extends Application {
                 }
                 // Kattintásra nem áll le a popup, csak a zene végén
             });
-
-            popupStage.setScene(scene);
-            popupStage.setWidth(get("GameWidth")); // Teljes képernyő szélesség
-            popupStage.setHeight(get("GameHeight")); // Teljes képernyő magasság
-
-            centerStage(popupStage, root.getScene());
-
-            popupStage.setOnCloseRequest(event -> {
-                event.consume();
-                // Ensure game music is restored when popup is closed
-                mediaPlayer.stop();
-                restoreGameMusic.run();
-                popupStage.close();
-                onClose.run();
+            
+            // Add keyboard event handler for Space key
+            layout.setOnKeyPressed(event -> {
+                if (!skipped.get() && event.getCode() == KeyCode.SPACE) {
+                    // Csak a nyeremény kiírás ugrik a végére, a zene és animáció folytatódik
+                    payoutLabel.setText(String.format("$%d", (int)payout));
+                    skipped.set(true);
+                }
+                // Kattintásra nem áll le a popup, csak a zene végén
             });
+            
+            // Make layout focusable for keyboard events
+            layout.setFocusTraversable(true);
 
-            popupStage.show();
+            // Add popup overlay to the game StackPane
+            StackPane gameStackPane = (StackPane) root.getScene().getRoot();
+            gameStackPane.getChildren().add(layout);
+            
+            // Request focus for keyboard events
+            layout.requestFocus();
         });
     }
     private void showLowBalanceMessage(Stage primaryStage) {

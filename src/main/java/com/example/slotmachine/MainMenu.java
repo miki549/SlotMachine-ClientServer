@@ -502,17 +502,31 @@ public class MainMenu extends Application {
         
         // Get server configuration without creating dialog
         String serverUrl = getServerUrlFromPreferences();
-        ApiClient apiClient = new ApiClient(serverUrl);
         
-        // Show login dialog
-        LoginDialog loginDialog = new LoginDialog(apiClient);
-        LoginResponse loginResponse = loginDialog.showAndWait(primaryStage);
-        
-        if (loginResponse != null) {
-            // Successful login - transition to game
-            transitionToGame(primaryStage, apiClient, loginResponse);
-        }
-        // If loginResponse is null, user cancelled - stay in main menu
+        // Create ApiClient on background thread to avoid blocking UI
+        new Thread(() -> {
+            try {
+                ApiClient apiClient = new ApiClient(serverUrl);
+                
+                // Show login dialog on JavaFX Application Thread
+                Platform.runLater(() -> {
+                    LoginDialog loginDialog = new LoginDialog(apiClient);
+                    LoginResponse loginResponse = loginDialog.showAndWait(primaryStage);
+                    
+                    if (loginResponse != null) {
+                        // Successful login - transition to game
+                        transitionToGame(primaryStage, apiClient, loginResponse);
+                    }
+                    // If loginResponse is null, user cancelled - stay in main menu
+                });
+            } catch (Exception e) {
+                // Handle any errors during ApiClient creation
+                Platform.runLater(() -> {
+                    System.err.println("Error creating ApiClient: " + e.getMessage());
+                    e.printStackTrace();
+                });
+            }
+        }).start();
     }
 
     private void transitionToGame(Stage primaryStage, ApiClient apiClient, LoginResponse loginResponse) {

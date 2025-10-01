@@ -3,6 +3,7 @@ package com.example.slotmachine;
 import com.example.slotmachine.client.ApiClient;
 import com.example.slotmachine.client.ServerConfigDialog;
 import com.example.slotmachine.client.LoginDialog;
+import com.example.slotmachine.CoinAnimation;
 import com.example.slotmachine.server.dto.LoginResponse;
 import com.example.slotmachine.server.dto.BalanceResponse;
 import com.example.slotmachine.server.dto.SpinResponse;
@@ -49,6 +50,7 @@ import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.geometry.Insets;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.RowConstraints;
@@ -122,6 +124,7 @@ public class SlotMachineGUI extends Application {
     private MediaPlayer bonusTriggerSound;
     private MediaPlayer retriggerSound;
     private Stage bonusResultsStage;
+    private CoinAnimation coinAnimation;
     private boolean isBonusMode = false;
     private boolean isUserBanned = false;
     private boolean isAutospinStopping = false; // Flag to track when autospin is being stopped but last spin is still running
@@ -483,6 +486,9 @@ public class SlotMachineGUI extends Application {
         StackPane gameStackPane = new StackPane();
         gameStackPane.getChildren().add(root);
         
+        // Initialize coin animation (will be set up during win popup)
+        coinAnimation = null; // Will be initialized during win popup
+        
         Scene scene = new Scene(gameStackPane, get("GameWidth"), get("GameHeight"));
         scene.getStylesheets().add("file:src/main/resources/configs/normalstyle.css");
 
@@ -743,6 +749,7 @@ public class SlotMachineGUI extends Application {
     }
 
     private void showWinningPopup(double payout, int multiplier, Runnable onClose) {
+        multiplier = 12;
         if (multiplier <= 10) {
             onClose.run(); // Ha nincs jelentős nyeremény, folytatja az automatikus pörgetést
             return;
@@ -768,6 +775,11 @@ public class SlotMachineGUI extends Application {
         mediaPlayer.setVolume(0);
 
         double originalVolume = gameMusic.getVolume();
+        
+        // Változók deklarálása a lambda kifejezésen kívül
+        VBox darkBackground = new VBox();
+        VBox winContent = new VBox(50);
+        Pane coinLayer = new Pane();
 
         mediaPlayer.setOnReady(() -> {
 
@@ -787,12 +799,6 @@ public class SlotMachineGUI extends Application {
 
             double duration = sound.getDuration().toSeconds();
             
-            // Teljes képernyős sötét háttér
-            VBox layout = new VBox(50); // Nagyobb távolság a kép és nyeremény között
-            layout.setAlignment(Pos.CENTER);
-            layout.setStyle("-fx-background-color: rgba(0, 0, 0, 0.7);"); // Teljes képernyős sötét háttér
-            layout.setPrefSize(get("GameWidth"), get("GameHeight"));
-
             // Create ImageView for win popup
             ImageView messageImage = new ImageView(new Image("file:" + message));
             
@@ -913,7 +919,7 @@ public class SlotMachineGUI extends Application {
             Region bottomSpacer = new Region();
             bottomSpacer.setPrefHeight(get("GameHeight") * 0.1); // 10% alul
             
-            layout.getChildren().addAll(topSpacer, messageImage, middleSpacer, payoutLabel, bottomSpacer);
+            // A layout már nem szükséges, mert két külön réteget használunk
 
             AtomicBoolean skipped = new AtomicBoolean(false); // nyilvántartja, hogy a felhasználó skippelte-e az animációt
             AtomicBoolean isPlaying = new AtomicBoolean(true);
@@ -954,7 +960,7 @@ public class SlotMachineGUI extends Application {
                 isPlaying.set(false);
                 
                 // Szép fade-out animáció a popup bezárásához
-                FadeTransition fadeOut = new FadeTransition(Duration.millis(get(prefix + "FadeOutDuration")), layout);
+                FadeTransition fadeOut = new FadeTransition(Duration.millis(get(prefix + "FadeOutDuration")), winContent);
                 fadeOut.setFromValue(1.0);
                 fadeOut.setToValue(0.0);
                 fadeOut.setInterpolator(Interpolator.EASE_OUT);
@@ -974,9 +980,17 @@ public class SlotMachineGUI extends Application {
                     mediaPlayer.stop();
                     restoreGameMusic.run();
                     
-                    // Remove popup overlay from StackPane
+                    // Stop coin animation
+                    if (coinAnimation != null) {
+                        coinAnimation.stopCoinAnimation();
+                        coinAnimation = null; // Memory leak megelőzése
+                    }
+                    
+                    // Remove all popup layers from StackPane
                     StackPane gameStackPane = (StackPane) root.getScene().getRoot();
-                    gameStackPane.getChildren().remove(layout);
+                    gameStackPane.getChildren().remove(darkBackground);
+                    gameStackPane.getChildren().remove(coinLayer);
+                    gameStackPane.getChildren().remove(winContent);
                     onClose.run();
                 });
                 closeAnimation.play();
@@ -995,9 +1009,42 @@ public class SlotMachineGUI extends Application {
 
             numberAnimation.play();
             mediaPlayer.play();
+            
+            // Get the game StackPane
+            StackPane gameStackPane = (StackPane) root.getScene().getRoot();
+            
+            // 1. Először a sötét háttér réteget adjuk hozzá
+            darkBackground.setStyle("-fx-background-color: rgba(0, 0, 0, 0.7);"); // Teljes képernyős sötét háttér
+            darkBackground.setPrefSize(get("GameWidth"), get("GameHeight"));
+            gameStackPane.getChildren().add(darkBackground);
+            
+            // 2. Most adjuk hozzá a coin layer-t (a sötét háttér után, de a win felirat előtt)
+            gameStackPane.getChildren().add(coinLayer);
+            
+            // 3. Inicializáljuk a coin animation-t a coinLayer-rel
+            // Előző animáció leállítása, ha még fut
+            if (coinAnimation != null) {
+                coinAnimation.stopCoinAnimation();
+            }
+            coinAnimation = new CoinAnimation(coinLayer);
+            
+            // 4. Most indítjuk az érme animációt
+            if (finalMultiplier > 10) {
+                // Calculate when to stop creating new coins (0.5 seconds before music ends)
+                double musicDuration = sound.getDuration().toSeconds();
+                double stopCreatingCoinsAt = musicDuration - 0.5; // Stop 0.5 seconds before end
+                System.out.println("Music duration: " + musicDuration + " seconds");
+                System.out.println("Stop creating coins at: " + stopCreatingCoinsAt + " seconds");
+                coinAnimation.startCoinAnimation(get("GameWidth"), get("GameHeight"), stopCreatingCoinsAt);
+            }
+            
+            // 4. Végül a win felirat réteget adjuk hozzá (legfelül)
+            winContent.setAlignment(Pos.CENTER);
+            winContent.setPrefSize(get("GameWidth"), get("GameHeight"));
+            winContent.getChildren().addAll(topSpacer, messageImage, middleSpacer, payoutLabel, bottomSpacer);
+            gameStackPane.getChildren().add(winContent);
 
-
-            layout.setOnMouseClicked(_ -> {
+            winContent.setOnMouseClicked(_ -> {
                 if (!skipped.get()) {
                     // Csak a nyeremény kiírás ugrik a végére, a zene és animáció folytatódik
                     payoutLabel.setText(String.format("$%d", (int)payout));
@@ -1007,7 +1054,7 @@ public class SlotMachineGUI extends Application {
             });
             
             // Add keyboard event handler for Space key
-            layout.setOnKeyPressed(event -> {
+            winContent.setOnKeyPressed(event -> {
                 if (!skipped.get() && event.getCode() == KeyCode.SPACE) {
                     // Csak a nyeremény kiírás ugrik a végére, a zene és animáció folytatódik
                     payoutLabel.setText(String.format("$%d", (int)payout));
@@ -1016,15 +1063,12 @@ public class SlotMachineGUI extends Application {
                 // Kattintásra nem áll le a popup, csak a zene végén
             });
             
-            // Make layout focusable for keyboard events
-            layout.setFocusTraversable(true);
-
-            // Add popup overlay to the game StackPane
-            StackPane gameStackPane = (StackPane) root.getScene().getRoot();
-            gameStackPane.getChildren().add(layout);
+            // Make winContent focusable for keyboard events
+            winContent.setFocusTraversable(true);
             
             // Request focus for keyboard events
-            layout.requestFocus();
+            winContent.requestFocus();
+            
         });
     }
     private void showLowBalanceMessage(Stage primaryStage) {

@@ -265,9 +265,9 @@ public class SlotMachineGUI extends Application {
             // Csak akkor frissítjük a balance text-et, ha nem pörget a játékos
             if (!game.isSpinning()) {
                 balanceText.setText("Credit: $" + (int)newBalance);
-                System.out.println("Balance real-time frissítés: $" + newBalance);
+                System.out.println("Balance real-time frissites: $" + newBalance);
             } else {
-                System.out.println("Balance frissítés kihagyva - pörgetés folyamatban: $" + newBalance);
+                System.out.println("Balance frissites kihagyva - porgetes folyamatban: $" + newBalance);
             }
         }));
         
@@ -743,7 +743,6 @@ public class SlotMachineGUI extends Application {
     }
 
     private void showWinningPopup(double payout, int multiplier, Runnable onClose) {
-        multiplier =101;
         if (multiplier <= 10) {
             onClose.run(); // Ha nincs jelentős nyeremény, folytatja az automatikus pörgetést
             return;
@@ -2114,7 +2113,7 @@ public class SlotMachineGUI extends Application {
             balancePollingTimer.setCycleCount(Timeline.INDEFINITE);
             balancePollingTimer.play();
             
-            System.out.println("Balance polling indítva (5 másodperces intervallum, csak amikor nem pörget, 2s késleltetéssel)");
+            System.out.println("Balance polling inditva (5 masodperces intervallum, csak amikor nem porget, 2s kesleltetessel)");
         }
     }
 
@@ -2122,7 +2121,7 @@ public class SlotMachineGUI extends Application {
         if (balancePollingTimer != null) {
             balancePollingTimer.stop();
             balancePollingTimer = null;
-            System.out.println("Balance polling leállítva");
+            System.out.println("Balance polling leallitva");
         }
     }
 

@@ -29,7 +29,7 @@ public class TransactionCleanupService {
     @Scheduled(cron = "0 0 2 * * ?") // Minden nap 2:00-kor
     @Transactional
     public void cleanupOldTransactions() {
-        System.out.println("🧹 Tranzakció cleanup indítása...");
+        System.out.println("🧹 Tranzakcio cleanup inditasa...");
         
         List<User> allUsers = userRepository.findAll();
         int totalDeleted = 0;
@@ -39,11 +39,11 @@ public class TransactionCleanupService {
             totalDeleted += deletedCount;
             
             if (deletedCount > 0) {
-                System.out.println("👤 " + user.getUsername() + ": " + deletedCount + " régi tranzakció törölve");
+                System.out.println("👤 " + user.getUsername() + ": " + deletedCount + " regi tranzakcio torolve");
             }
         }
         
-        System.out.println("✅ Tranzakció cleanup befejezve. Összesen " + totalDeleted + " tranzakció törölve.");
+        System.out.println("✅ Tranzakcio cleanup befejezve. Osszesen " + totalDeleted + " tranzakcio torolve.");
     }
     
     /**
@@ -75,7 +75,7 @@ public class TransactionCleanupService {
      */
     @Transactional
     public int manualCleanup() {
-        System.out.println("🧹 Manuális tranzakció cleanup indítása...");
+        System.out.println("🧹 Manualis tranzakcio cleanup inditasa...");
         
         List<User> allUsers = userRepository.findAll();
         int totalDeleted = 0;
@@ -85,11 +85,11 @@ public class TransactionCleanupService {
             totalDeleted += deletedCount;
             
             if (deletedCount > 0) {
-                System.out.println("👤 " + user.getUsername() + ": " + deletedCount + " régi tranzakció törölve");
+                System.out.println("👤 " + user.getUsername() + ": " + deletedCount + " regi tranzakcio torolve");
             }
         }
         
-        System.out.println("✅ Manuális tranzakció cleanup befejezve. Összesen " + totalDeleted + " tranzakció törölve.");
+        System.out.println("✅ Manualis tranzakcio cleanup befejezve. Osszesen " + totalDeleted + " tranzakcio torolve.");
         return totalDeleted;
     }
 }

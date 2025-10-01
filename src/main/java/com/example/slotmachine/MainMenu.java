@@ -55,9 +55,9 @@ public class MainMenu extends Application {
     private static boolean isSettingsDialogOpen = false;
     private MediaPlayer buttonClickSound;
     private MediaPlayer backgroundVideo, introVideo, loopVideo;
-    private static boolean introPlayed = false;
-    private static boolean videoInitialized = false;
-    private static MediaPlayer staticBackgroundVideo, staticIntroVideo, staticLoopVideo;
+    private static volatile boolean introPlayed = false;
+    private static volatile boolean videoInitialized = false;
+    private static volatile MediaPlayer staticBackgroundVideo, staticIntroVideo, staticLoopVideo;
     private double volume = 0.2;
     public String currentWindowSize = "small"; // Default window size
 
@@ -73,16 +73,25 @@ public class MainMenu extends Application {
 
         // Videók betöltése - csak egyszer inicializáljuk
         if (!videoInitialized) {
-            System.out.println("Videók betöltése...");
+            System.out.println("Videok betoltese...");
+            
+            // Várunk egy kicsit a betöltés előtt, hogy a scene teljesen kész legyen
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            
             introVideo = ResourceLoader.loadBackground("intro.mp4");
             loopVideo = ResourceLoader.loadBackground("loop.mp4");
 
             // Check if videos loaded successfully
             if (introVideo == null || loopVideo == null) {
-                System.err.println("Nem sikerült betölteni a háttérvideókat, fallback háttér használata");
+                System.err.println("Nem sikerult betolteni a hattervideokat, fallback hatter hasznalata");
                 backgroundVideo = null;
                 introVideo = null;
                 loopVideo = null;
+                videoInitialized = false; // Ne jelezzük inicializáltnak, ha nem sikerült
             } else {
                 // Statikus referenciák mentése
                 staticIntroVideo = introVideo;
@@ -94,18 +103,35 @@ public class MainMenu extends Application {
             // Ha már inicializálva volt, használjuk a statikus referenciákat
             introVideo = staticIntroVideo;
             loopVideo = staticLoopVideo;
+            
+            // Ellenőrizzük, hogy a statikus referenciák még érvényesek-e
+            if (introVideo == null || loopVideo == null) {
+                System.err.println("Statikus video referencia elvesztek, ujra inicializalas...");
+                videoInitialized = false;
+                // Rekurzív hívás az újra inicializáláshoz
+                start(primaryStage);
+                return;
+            }
         }
 
         if (introVideo != null && loopVideo != null) {
             // Add error handling for both videos
             introVideo.setOnError(() -> {
-                System.err.println("Hiba az intro videó betöltésekor: " + introVideo.getError().toString());
+                System.err.println("Hiba az intro video betoltese kor: " + introVideo.getError().toString());
                 // Ha az intro videó hibás, próbáljuk meg újra betölteni
-                System.out.println("Újrapróbálkozás az intro videó betöltésével...");
+                System.out.println("Ujraprobalas az intro video betoltesevel...");
+                
+                // Dispose the old player first
+                safeDisposeMediaPlayer(introVideo);
+                
                 MediaPlayer retryIntro = ResourceLoader.loadBackground("intro.mp4");
                 if (retryIntro != null) {
                     introVideo = retryIntro;
                     introVideo.setCycleCount(1);
+                    
+                    // Update static reference
+                    staticIntroVideo = introVideo;
+                    
                     if (!introPlayed) {
                         backgroundVideo = introVideo;
                         introVideo.play();
@@ -114,36 +140,43 @@ public class MainMenu extends Application {
             });
             
             loopVideo.setOnError(() -> {
-                System.err.println("Hiba a loop videó betöltésekor: " + loopVideo.getError().toString());
+                System.err.println("Hiba a loop video betoltese kor: " + loopVideo.getError().toString());
                 // Ha a loop videó hibás, próbáljuk meg újra betölteni
-                System.out.println("Újrapróbálkozás a loop videó betöltésével...");
+                System.out.println("Ujraprobalas a loop video betoltesevel...");
+                
+                // Dispose the old player first
+                safeDisposeMediaPlayer(loopVideo);
+                
                 MediaPlayer retryLoop = ResourceLoader.loadBackground("loop.mp4");
                 if (retryLoop != null) {
                     loopVideo = retryLoop;
                     loopVideo.setCycleCount(MediaPlayer.INDEFINITE);
+                    
+                    // Update static reference
+                    staticLoopVideo = loopVideo;
                 }
             });
-            System.out.println("Videók sikeresen betöltve, inicializálás...");
+            System.out.println("Videok sikeresen betoltve, inicializalas...");
             
             // Inicializálás előtt várjuk meg, amíg a videók készen állnak
             introVideo.setOnReady(() -> {
-                System.out.println("Intro videó készen áll");
+                System.out.println("Intro video keszen all");
                 introVideo.setCycleCount(1);
             });
             
             loopVideo.setOnReady(() -> {
-                System.out.println("Loop videó készen áll");
+                System.out.println("Loop video keszen all");
                 loopVideo.setCycleCount(MediaPlayer.INDEFINITE);
             });
 
             // Ellenőrizzük, hogy az intro már lejátszódott-e korábban
             if (!introPlayed) {
-                System.out.println("Intro videó indítása...");
+                System.out.println("Intro video inditasa...");
                 backgroundVideo = introVideo;
 
                 // Ha az első videó véget ér, induljon a második és állítsuk be háttérnek is
                 introVideo.setOnEndOfMedia(() -> {
-                    System.out.println("Intro videó lejátszva, loop videó indítása...");
+                    System.out.println("Intro video lejatszva, loop video inditasa...");
                     introPlayed = true;
                     backgroundVideo = loopVideo;
                     staticBackgroundVideo = loopVideo; // Statikus referenciát is frissítjük
@@ -152,25 +185,39 @@ public class MainMenu extends Application {
                     // A MediaView frissítése az új videóra
                     Platform.runLater(() -> {
                         try {
-                            MediaView view = (MediaView) ((StackPane) ((BorderPane) primaryStage.getScene().getRoot()).getCenter()).getChildren().get(0);
-                            view.setMediaPlayer(backgroundVideo);
-                            System.out.println("MediaView sikeresen frissítve");
+                            if (primaryStage.getScene() != null && primaryStage.getScene().getRoot() != null) {
+                                BorderPane root = (BorderPane) primaryStage.getScene().getRoot();
+                                if (root.getCenter() != null) {
+                                    StackPane centerPane = (StackPane) root.getCenter();
+                                    if (!centerPane.getChildren().isEmpty() && centerPane.getChildren().get(0) instanceof MediaView) {
+                                        MediaView view = (MediaView) centerPane.getChildren().get(0);
+                                        view.setMediaPlayer(backgroundVideo);
+                                        System.out.println("MediaView sikeresen frissitve");
+                                    } else {
+                                        System.out.println("MediaView nem talalhato a scene-ben");
+                                    }
+                                } else {
+                                    System.out.println("Center pane nem talalhato");
+                                }
+                            } else {
+                                System.out.println("Scene vagy root nem talalhato");
+                            }
                         } catch (Exception e) {
-                            System.err.println("Hiba a MediaView frissítésekor: " + e.getMessage());
+                            System.err.println("Hiba a MediaView frissitese kor: " + e.getMessage());
                         }
                     });
                 });
 
-                // Csak akkor indítsuk el, ha még nem fut
-                if (introVideo.getStatus() != MediaPlayer.Status.PLAYING) {
+                // Csak akkor indítsuk el, ha még nem fut és a videó érvényes
+                if (introVideo != null && introVideo.getStatus() != MediaPlayer.Status.PLAYING) {
                     introVideo.play();
                 }
             } else {
-                System.out.println("Loop videó indítása...");
+                System.out.println("Loop video inditasa...");
                 backgroundVideo = loopVideo;
                 staticBackgroundVideo = loopVideo; // Statikus referenciát is frissítjük
-                // Csak akkor indítsuk el, ha még nem fut
-                if (loopVideo.getStatus() != MediaPlayer.Status.PLAYING) {
+                // Csak akkor indítsuk el, ha még nem fut és a videó érvényes
+                if (loopVideo != null && loopVideo.getStatus() != MediaPlayer.Status.PLAYING) {
                     loopVideo.play();
                 }
             }
@@ -196,6 +243,18 @@ public class MainMenu extends Application {
             buttonClickSound.seek(Duration.ZERO);
             buttonClickSound.play();
         });
+    }
+    
+    // Segédfüggvény a biztonságos MediaPlayer cleanup-hoz
+    private static void safeDisposeMediaPlayer(MediaPlayer player) {
+        if (player != null) {
+            try {
+                player.stop();
+                player.dispose();
+            } catch (Exception e) {
+                // Ignore disposal errors
+            }
+        }
     }
     private BorderPane createMainMenu(Stage primaryStage) {
         // Background
@@ -387,7 +446,7 @@ public class MainMenu extends Application {
         volumeSlider.valueProperty().addListener((_, _, newValue) -> {
             volume = newValue.doubleValue();
             mainMenuMusic.setVolume(volume);
-            percentageLabel.setText(String.format("Volume: %d%%", (int) (volume * 100))); // Százalék frissítése
+            percentageLabel.setText(String.format("Volume: %d%%", (int) (volume * 100))); // Szazalek frissitese
         });
 
         windowSizeCombo.setOnAction(_ -> {
@@ -400,18 +459,16 @@ public class MainMenu extends Application {
                 settingsStage.close();
                 settingsStage = null;
 
-                // Stop current videos before restart
-                if (backgroundVideo != null) {
-                    backgroundVideo.stop();
-                }
-                if (introVideo != null) {
-                    introVideo.stop();
-                }
-                if (loopVideo != null) {
-                    loopVideo.stop();
-                }
+                // Stop and dispose current videos before restart
+                safeDisposeMediaPlayer(backgroundVideo);
+                safeDisposeMediaPlayer(introVideo);
+                safeDisposeMediaPlayer(loopVideo);
 
-                // Reset intro played flag so intro video plays again after window size change
+                // Clean up static video references to prevent conflicts
+                staticBackgroundVideo = null;
+                staticIntroVideo = null;
+                staticLoopVideo = null;
+                videoInitialized = false;
                 introPlayed = false;
 
                 // Restart the application with the new window size
@@ -570,11 +627,16 @@ public class MainMenu extends Application {
     public void stop() {
         // Ne állítsuk le a statikus videókat, csak a lokális referenciákat
         if (backgroundVideo != null && backgroundVideo != staticBackgroundVideo) {
-            backgroundVideo.stop();
+            safeDisposeMediaPlayer(backgroundVideo);
         }
         if (mainMenuMusic != null) {
             mainMenuMusic.stop();
         }
+        
+        // Tisztítsuk fel a lokális referenciákat
+        backgroundVideo = null;
+        introVideo = null;
+        loopVideo = null;
     }
 
     public static void main(String[] args) {

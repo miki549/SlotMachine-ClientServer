@@ -52,16 +52,16 @@ public class ConsoleAdminApp {
         System.out.println();
 
         while (true) {
-            System.out.println("1. Felhasználók listázása");
-            System.out.println("2. Kredit hozzáadása");
-            System.out.println("3. Balance beállítása");
-            System.out.println("4. Felhasználó tiltása/engedélyezése");
-            System.out.println("5. Felhasználó átnevezése");
-            System.out.println("6. Felhasználó törlése");
-            System.out.println("7. Felhasználó tranzakciói");
-            System.out.println("8. Tranzakciók cleanup (1000 limit)");
-            System.out.println("9. Kilépés");
-            System.out.print("Válassz opciót (1-9): ");
+            System.out.println("1. Felhasznalok listazasa");
+            System.out.println("2. Kredit hozzaadasa");
+            System.out.println("3. Balance beallitasa");
+            System.out.println("4. Felhasznalo tiltasa/engedelyezese");
+            System.out.println("5. Felhasznalo atnevezese");
+            System.out.println("6. Felhasznalo torlese");
+            System.out.println("7. Felhasznalo tranzakcioi");
+            System.out.println("8. Tranzakciok cleanup (1000 limit)");
+            System.out.println("9. Kilepes");
+            System.out.print("Valassz opciot (1-9): ");
 
             String choice = scanner.nextLine().trim();
 
@@ -91,11 +91,11 @@ public class ConsoleAdminApp {
                     cleanupTransactions();
                     break;
                 case "9":
-                    System.out.println("Kilépés...");
+                    System.out.println("Kilepes...");
                     scanner.close();
                     return;
                 default:
-                    System.out.println("Érvénytelen opció!");
+                    System.out.println("Ervenytelen opcio!");
                     break;
             }
             System.out.println();
@@ -114,7 +114,7 @@ public class ConsoleAdminApp {
         try {
             double amount = Double.parseDouble(amountStr);
             if (amount <= 0) {
-                System.out.println("Hiba: A kredit összegnek pozitívnak kell lennie!");
+                System.out.println("Hiba: A kredit osszegnek pozitivnak kell lennie!");
                 return;
             }
 
@@ -130,19 +130,19 @@ public class ConsoleAdminApp {
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() == 200) {
-                System.out.println("✅ Kredit sikeresen hozzáadva!");
-                System.out.println("   Felhasználó: " + username);
-                System.out.println("   Összeg: $" + (int)amount);
+                System.out.println("✅ Kredit sikeresen hozzaadva!");
+                System.out.println("   Felhasznalo: " + username);
+                System.out.println("   Osszeg: $" + (int)amount);
             } else {
                 System.out.println("❌ Hiba: " + response.body());
             }
 
         } catch (NumberFormatException e) {
-            System.out.println("Hiba: Érvénytelen szám formátum!");
+            System.out.println("Hiba: Ervenytelen szam formatum!");
         } catch (IOException | InterruptedException e) {
-            System.out.println("Hiba: Nem lehet kapcsolódni a szerverhez!");
-            System.out.println("Ellenőrizd, hogy a szerver fut-e a 8081-es (PC) vagy 8082-es (laptop) porton.");
-            System.out.println("Részletek: " + e.getMessage());
+            System.out.println("Hiba: Nem lehet kapcsolodni a szerverhez!");
+            System.out.println("Ellenorizd, hogy a szerver fut-e a 8081-es (PC) vagy 8082-es (laptop) porton.");
+            System.out.println("Reszletek: " + e.getMessage());
         }
     }
 
@@ -161,7 +161,7 @@ public class ConsoleAdminApp {
                 
                 // Egyszerű JSON parsing (a teljes Jackson helyett)
                 if (responseBody.contains("[]")) {
-                    System.out.println("Nincsenek regisztrált felhasználók.");
+                    System.out.println("Nincsenek regisztrált felhasznalok.");
                 } else {
                     // Alapvető felhasználó információk kinyerése
                     String[] users = responseBody.split("\\},\\{");
@@ -185,11 +185,11 @@ public class ConsoleAdminApp {
                     }
                 }
             } else {
-                System.out.println("❌ Hiba a felhasználók lekérésekor: " + response.body());
+                System.out.println("❌ Hiba a felhasznalok lekerese kor: " + response.body());
             }
 
         } catch (Exception e) {
-            System.out.println("❌ Hálózati hiba: " + e.getMessage());
+            System.out.println("❌ Halozati hiba: " + e.getMessage());
         }
     }
 
@@ -206,7 +206,7 @@ public class ConsoleAdminApp {
                 String responseBody = response.body();
                 
                 if (responseBody.contains("[]")) {
-                    System.out.println("Nincsenek regisztrált felhasználók.");
+                    System.out.println("Nincsenek regisztrált felhasznalok.");
                     return null;
                 } else {
                     System.out.println("=== FELHASZNÁLÓ KIVÁLASZTÁS ===");
@@ -241,21 +241,21 @@ public class ConsoleAdminApp {
                         if (index >= 0 && index < usernames.length) {
                             return usernames[index];
                         } else {
-                            System.out.println("❌ Hiba: Érvénytelen sorszám!");
+                            System.out.println("❌ Hiba: Ervenytelen sorszam!");
                             return null;
                         }
                     } catch (NumberFormatException e) {
-                        System.out.println("❌ Hiba: Kérlek számot adj meg!");
+                        System.out.println("❌ Hiba: Kerlek szamot adj meg!");
                         return null;
                     }
                 }
             } else {
-                System.out.println("❌ Hiba a felhasználók lekérésekor: " + response.body());
+                System.out.println("❌ Hiba a felhasznalok lekerese kor: " + response.body());
                 return null;
             }
 
         } catch (Exception e) {
-            System.out.println("❌ Hálózati hiba: " + e.getMessage());
+            System.out.println("❌ Halozati hiba: " + e.getMessage());
             return null;
         }
     }
@@ -272,7 +272,7 @@ public class ConsoleAdminApp {
         try {
             double balance = Double.parseDouble(balanceStr);
             if (balance < 0) {
-                System.out.println("Hiba: A balance nem lehet negatív!");
+                System.out.println("Hiba: A balance nem lehet negativ!");
                 return;
             }
 
@@ -287,17 +287,17 @@ public class ConsoleAdminApp {
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() == 200) {
-                System.out.println("✅ Balance sikeresen beállítva!");
-                System.out.println("   Felhasználó: " + username);
+                System.out.println("✅ Balance sikeresen beallitva!");
+                System.out.println("   Felhasznalo: " + username);
                 System.out.println("   Új balance: $" + (int)balance);
             } else {
                 System.out.println("❌ Hiba: " + response.body());
             }
 
         } catch (NumberFormatException e) {
-            System.out.println("Hiba: Érvénytelen szám formátum!");
+            System.out.println("Hiba: Ervenytelen szam formatum!");
         } catch (Exception e) {
-            System.out.println("❌ Hálózati hiba: " + e.getMessage());
+            System.out.println("❌ Halozati hiba: " + e.getMessage());
         }
     }
 
@@ -325,13 +325,13 @@ public class ConsoleAdminApp {
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() == 200) {
-                System.out.println("✅ Felhasználó sikeresen " + actionText + "!");
+                System.out.println("✅ Felhasznalo sikeresen " + actionText + "!");
             } else {
                 System.out.println("❌ Hiba: " + response.body());
             }
 
         } catch (Exception e) {
-            System.out.println("❌ Hálózati hiba: " + e.getMessage());
+            System.out.println("❌ Halozati hiba: " + e.getMessage());
         }
     }
 
@@ -346,7 +346,7 @@ public class ConsoleAdminApp {
         String newUsername = scanner.nextLine().trim();
 
         if (newUsername.isEmpty()) {
-            System.out.println("Hiba: Az új felhasználónév nem lehet üres!");
+            System.out.println("Hiba: Az uj felhasznalonev nem lehet ures!");
             return;
         }
 
@@ -362,14 +362,14 @@ public class ConsoleAdminApp {
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() == 200) {
-                System.out.println("✅ Felhasználó sikeresen átnevezve!");
+                System.out.println("✅ Felhasznalo sikeresen atnevezve!");
                 System.out.println("   " + oldUsername + " → " + newUsername);
             } else {
                 System.out.println("❌ Hiba: " + response.body());
             }
 
         } catch (Exception e) {
-            System.out.println("❌ Hálózati hiba: " + e.getMessage());
+            System.out.println("❌ Halozati hiba: " + e.getMessage());
         }
     }
 
@@ -383,7 +383,7 @@ public class ConsoleAdminApp {
         String confirm = scanner.nextLine().trim().toLowerCase();
 
         if (!confirm.equals("igen") && !confirm.equals("i")) {
-            System.out.println("Törlés megszakítva.");
+            System.out.println("Torles megszakítva.");
             return;
         }
 
@@ -397,13 +397,13 @@ public class ConsoleAdminApp {
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() == 200) {
-                System.out.println("✅ Felhasználó sikeresen törölve!");
+                System.out.println("✅ Felhasznalo sikeresen torolve!");
             } else {
                 System.out.println("❌ Hiba: " + response.body());
             }
 
         } catch (Exception e) {
-            System.out.println("❌ Hálózati hiba: " + e.getMessage());
+            System.out.println("❌ Halozati hiba: " + e.getMessage());
         }
     }
 
@@ -426,7 +426,7 @@ public class ConsoleAdminApp {
                 String responseBody = response.body();
                 
                 if (responseBody.contains("[]") || responseBody.trim().equals("[]")) {
-                    System.out.println("Nincsenek tranzakciók.");
+                    System.out.println("Nincsenek tranzakciok.");
                 } else {
                     // Parse and display transactions in a readable format
                     parseAndDisplayTransactions(responseBody);
@@ -436,7 +436,7 @@ public class ConsoleAdminApp {
             }
 
         } catch (Exception e) {
-            System.out.println("❌ Hálózati hiba: " + e.getMessage());
+            System.out.println("❌ Halozati hiba: " + e.getMessage());
         }
     }
 
@@ -453,7 +453,7 @@ public class ConsoleAdminApp {
             }
             
             if (cleanJson.trim().isEmpty()) {
-                System.out.println("Nincsenek tranzakciók.");
+                System.out.println("Nincsenek tranzakciok.");
                 return;
             }
             
@@ -503,7 +503,7 @@ public class ConsoleAdminApp {
             }
             
         } catch (Exception e) {
-            System.out.println("Hiba a tranzakciók feldolgozásakor: " + e.getMessage());
+            System.out.println("Hiba a tranzakciok feldolgozasakor: " + e.getMessage());
             System.out.println("Nyers adat: " + jsonResponse);
         }
     }
@@ -559,7 +559,7 @@ public class ConsoleAdminApp {
     
     private static void cleanupTransactions() {
         System.out.println("=== TRANZAKCIÓK CLEANUP ===");
-        System.out.println("Ez a művelet törli a régi tranzakciókat, hogy minden felhasználónál maximum 1000 tranzakció maradjon.");
+        System.out.println("Ez a muvelet torli a regi tranzakciokat, hogy minden felhasznalonal maximum 1000 tranzakcio maradjon.");
         System.out.print("Biztosan folytatod? (igen/nem): ");
         
         Scanner scanner = new Scanner(System.in);
@@ -586,7 +586,7 @@ public class ConsoleAdminApp {
             }
 
         } catch (Exception e) {
-            System.out.println("❌ Hálózati hiba: " + e.getMessage());
+            System.out.println("❌ Halozati hiba: " + e.getMessage());
         }
     }
 

@@ -991,6 +991,10 @@ public class SlotMachineGUI extends Application {
                     gameStackPane.getChildren().remove(darkBackground);
                     gameStackPane.getChildren().remove(coinLayer);
                     gameStackPane.getChildren().remove(winContent);
+                    
+                    // Focus visszaállítása a fő scene-hez, hogy a space billentyű újra működjön
+                    root.requestFocus();
+                    
                     onClose.run();
                 });
                 closeAnimation.play();

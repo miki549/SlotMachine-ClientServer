@@ -1,9 +1,6 @@
 package com.example.slotmachine.client;
 
 import com.example.slotmachine.server.dto.LoginResponse;
-import com.example.slotmachine.ConfigManager;
-import com.example.slotmachine.MainMenu;
-import com.example.slotmachine.ResourceLoader;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -24,13 +21,13 @@ import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.util.Duration;
 
-import static com.example.slotmachine.ConfigManager.get;
+import static com.example.slotmachine.client.ConfigManager.get;
 
 public class LoginDialog {
     private final ApiClient apiClient;
     private LoginResponse loginResponse;
     private boolean cancelled = false;
-    private MediaPlayer buttonClickSound;
+    private final MediaPlayer buttonClickSound;
     
     // Static variable to track if login dialog is open
     private static boolean isLoginDialogOpen = false;
@@ -72,13 +69,13 @@ public class LoginDialog {
         loginStage.initOwner(parentStage);
         
         // Make dialog follow parent window movement
-        parentStage.xProperty().addListener((obs, oldVal, newVal) -> {
+        parentStage.xProperty().addListener((_, _, _) -> {
             if (loginStage.isShowing()) {
                 loginStage.setX(parentStage.getX() + (parentStage.getWidth() - loginStage.getWidth()) / 2);
             }
         });
         
-        parentStage.yProperty().addListener((obs, oldVal, newVal) -> {
+        parentStage.yProperty().addListener((_, _, _) -> {
             if (loginStage.isShowing()) {
                 loginStage.setY(parentStage.getY() + (parentStage.getHeight() - loginStage.getHeight()) / 2);
             }
@@ -131,7 +128,7 @@ public class LoginDialog {
         statusLabel.setMaxHeight(get("LoginStatusFontSize") * 5); // Maximum height
 
         // Event handlers
-        loginButton.setOnAction(e -> {
+        loginButton.setOnAction(_ -> {
             String username = usernameField.getText().trim();
             String password = passwordField.getText();
 
@@ -164,7 +161,7 @@ public class LoginDialog {
             }).start();
         });
 
-        registerButton.setOnAction(e -> {
+        registerButton.setOnAction(_ -> {
             String username = usernameField.getText().trim();
             String password = passwordField.getText();
 
@@ -200,13 +197,13 @@ public class LoginDialog {
             }).start();
         });
 
-        cancelButton.setOnAction(e -> {
+        cancelButton.setOnAction(_ -> {
             cancelled = true;
             loginStage.close();
         });
 
         // Enter lenyomásra bejelentkezés
-        passwordField.setOnAction(e -> loginButton.fire());
+        passwordField.setOnAction(_ -> loginButton.fire());
 
         VBox layout = new VBox(get("LoginLayoutSpacing"));
         layout.setAlignment(Pos.CENTER);
@@ -239,10 +236,10 @@ public class LoginDialog {
         loginStage.setResizable(false);
         
         // Set all window sizes consistently
-        setWindowSize(loginStage, scene, layout, clip);
+        setWindowSize(loginStage, layout, clip);
 
         // Középre igazítás
-        loginStage.setOnShown(e -> {
+        loginStage.setOnShown(_ -> {
             loginStage.setX(parentStage.getX() + (parentStage.getWidth() - loginStage.getWidth()) / 2);
             loginStage.setY(parentStage.getY() + (parentStage.getHeight() - loginStage.getHeight()) / 2);
         });
@@ -251,9 +248,7 @@ public class LoginDialog {
         Platform.runLater(usernameField::requestFocus);
         
         // Add listener to reset flag when dialog is closed
-        loginStage.setOnHidden(e -> {
-            isLoginDialogOpen = false;
-        });
+        loginStage.setOnHidden(_ -> isLoginDialogOpen = false);
 
         loginStage.showAndWait();
 
@@ -274,7 +269,7 @@ public class LoginDialog {
     /**
      * Helper method to set window size consistently across all components
      */
-    private void setWindowSize(Stage stage, Scene scene, VBox layout, Rectangle clip) {
+    private void setWindowSize(Stage stage, VBox layout, Rectangle clip) {
         // Load window size from config
         double windowWidth = get("LoginDialogWidth");
         double windowHeight = get("LoginDialogHeight");

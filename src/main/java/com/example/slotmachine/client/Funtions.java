@@ -1,4 +1,4 @@
-package com.example.slotmachine;
+package com.example.slotmachine.client;
 
 import javafx.application.Platform;
 import javafx.scene.Scene;
@@ -25,23 +25,21 @@ public class Funtions {
         });
 
         // Hozzáadjuk a mozgatás követést
-        parentStage.xProperty().addListener((obs, oldVal, newVal) -> {
+        parentStage.xProperty().addListener((_, _, _) -> {
             if (stageToCenter != null && stageToCenter.isShowing()) {
                 Platform.runLater(() -> {
                     if (stageToCenter.isShowing()) {
                         double centerX = parentStage.getX() + (parentStage.getWidth() - stageToCenter.getWidth()) / 2;
-                        double centerY = stageToCenter.getY(); // Y pozíciót megtartjuk
                         stageToCenter.setX(centerX);
                     }
                 });
             }
         });
 
-        parentStage.yProperty().addListener((obs, oldVal, newVal) -> {
+        parentStage.yProperty().addListener((_, _, _) -> {
             if (stageToCenter != null && stageToCenter.isShowing()) {
                 Platform.runLater(() -> {
                     if (stageToCenter.isShowing()) {
-                        double centerX = stageToCenter.getX(); // X pozíciót megtartjuk
                         double centerY = parentStage.getY() + (parentStage.getHeight() - stageToCenter.getHeight()) / 2;
                         stageToCenter.setY(centerY);
                     }

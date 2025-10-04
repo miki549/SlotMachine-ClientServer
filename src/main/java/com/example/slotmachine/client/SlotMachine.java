@@ -1,18 +1,16 @@
-package com.example.slotmachine;
+package com.example.slotmachine.client;
 
-import com.example.slotmachine.client.ApiClient;
 import com.example.slotmachine.server.dto.BalanceResponse;
 import com.example.slotmachine.server.dto.SpinResponse;
 
 
-import static com.example.slotmachine.GameSettings.*;
+import static com.example.slotmachine.client.GameSettings.*;
 
 public class SlotMachine {
 
     private final int[][] generatedSymbols = new int[GRID_SIZE][GRID_SIZE]; // Csak a GUI megjelenítéshez
     private double balance;
     private int bet = DEFAULT_BET;
-    private boolean isBonusMode = false;
     private int remainingFreeSpins = 0;
     private double bonusPayout = 0;
     private final ApiClient apiClient;
@@ -48,8 +46,7 @@ public class SlotMachine {
             SpinResponse response = apiClient.processSpin(betAmount, isBonusMode);
             if (response.isSuccess()) {
                 // A szerver már hozzáadta a nyereményt, használjuk a szerver balance-t
-                double serverBalance = response.getNewBalance();
-                this.balance = serverBalance;
+                this.balance = response.getNewBalance();
                 
                 // Frissítjük a lokális grid-et a szerver adataival
                 if (response.getInitialGrid() != null) {
@@ -85,27 +82,16 @@ public class SlotMachine {
         }
     }
 
-    public void updateBalanceFromServer() {
-        try {
-            BalanceResponse response = apiClient.getBalance();
-            this.balance = response.getBalance();
-            System.out.println("Balance updated from server: $" + this.balance);
-        } catch (Exception e) {
-            System.err.println("Failed to update balance from server: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
-    
     public void setBalance(double balance) {
         this.balance = balance;
     }
 
     public boolean isOnline() {
-        return apiClient != null && apiClient.isConnected();
+        return apiClient.isConnected();
     }
 
     public boolean isSpinning() {
-        return isSpinning;
+        return !isSpinning;
     }
 
     public void setSpinning(boolean spinning) {
@@ -135,10 +121,6 @@ public class SlotMachine {
         bet = s;
     }
 
-    public boolean isBonusMode() {
-        return isBonusMode;
-    }
-
     public int getRemainingFreeSpins() {
         return remainingFreeSpins;
     }
@@ -148,13 +130,11 @@ public class SlotMachine {
     }
 
     public void startBonusMode() {
-        isBonusMode = true;
         remainingFreeSpins = FREE_SPINS;
         bonusPayout = 0;
     }
 
     public void endBonusMode() {
-        isBonusMode = false;
         remainingFreeSpins = 0;
         increaseBalance(bonusPayout);
         bonusPayout = 0;

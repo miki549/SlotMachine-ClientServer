@@ -98,7 +98,7 @@ public class ApiClient {
         }
     }
 
-    public LoginResponse register(String username, String password) throws IOException, InterruptedException {
+    public void register(String username, String password) throws IOException, InterruptedException {
         LoginRequest registerRequest = new LoginRequest(username, password);
         String jsonBody = objectMapper.writeValueAsString(registerRequest);
 
@@ -114,7 +114,6 @@ public class ApiClient {
         if (response.statusCode() == 200) {
             LoginResponse loginResponse = objectMapper.readValue(response.body(), LoginResponse.class);
             this.authToken = loginResponse.getToken();
-            return loginResponse;
         } else {
             throw new RuntimeException("Registration failed: " + response.body());
         }
@@ -192,15 +191,4 @@ public class ApiClient {
         }
     }
 
-    public void setAuthToken(String token) {
-        this.authToken = token;
-    }
-
-    public String getAuthToken() {
-        return authToken;
-    }
-
-    public String getServerUrl() {
-        return baseUrl.replace("/api", "");
-    }
 }

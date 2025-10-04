@@ -1,4 +1,4 @@
-package com.example.slotmachine;
+package com.example.slotmachine.client;
 
 public class Pair<T, U> {
     public final T first;

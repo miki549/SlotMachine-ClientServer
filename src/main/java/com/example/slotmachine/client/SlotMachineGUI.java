@@ -1,9 +1,4 @@
-package com.example.slotmachine;
-
-import com.example.slotmachine.client.ApiClient;
-import com.example.slotmachine.client.ServerConfigDialog;
-import com.example.slotmachine.client.LoginDialog;
-import com.example.slotmachine.CoinAnimation;
+package com.example.slotmachine.client;
 import com.example.slotmachine.server.dto.LoginResponse;
 import com.example.slotmachine.server.dto.BalanceResponse;
 import com.example.slotmachine.server.dto.SpinResponse;
@@ -21,7 +16,6 @@ import javafx.animation.TranslateTransition;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleDoubleProperty;
-import javafx.event.Event;
 import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -33,27 +27,18 @@ import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Control;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
-import javafx.scene.control.TextField;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.effect.GaussianBlur;
-import javafx.scene.effect.Glow;
-import javafx.scene.effect.InnerShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
-import javafx.scene.layout.Background;
-import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.ColumnConstraints;
-import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
-import javafx.geometry.Insets;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
-import javafx.scene.layout.RowConstraints;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.media.MediaPlayer;
@@ -76,12 +61,11 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static com.example.slotmachine.ConfigManager.get;
-import static com.example.slotmachine.ConfigManager.getDouble;
-import static com.example.slotmachine.Funtions.centerStage;
+import static com.example.slotmachine.client.ConfigManager.get;
+import static com.example.slotmachine.client.ConfigManager.getDouble;
 
 
-import static com.example.slotmachine.GameSettings.*;
+import static com.example.slotmachine.client.GameSettings.*;
 
 public class SlotMachineGUI extends Application {
 
@@ -108,7 +92,7 @@ public class SlotMachineGUI extends Application {
     private final Button volumeButton = new Button();
     private Text balanceText = new Text("Credit: $0");
     private final Text winText = new Text("");
-    private Text usernameText = new Text("");
+    private final Text usernameText = new Text("");
     private final Random random = new Random();
 
     private MediaPlayer gameMusic;
@@ -266,7 +250,7 @@ public class SlotMachineGUI extends Application {
         // Balance update listener beállítása
         game.setBalanceUpdateListener(newBalance -> Platform.runLater(() -> {
             // Csak akkor frissítjük a balance text-et, ha nem pörget a játékos
-            if (!game.isSpinning()) {
+            if (game.isSpinning()) {
                 balanceText.setText("Credit: $" + (int)newBalance);
                 System.out.println("Balance real-time frissites: $" + newBalance);
             } else {
@@ -749,7 +733,6 @@ public class SlotMachineGUI extends Application {
     }
 
     private void showWinningPopup(double payout, int multiplier, Runnable onClose) {
-        multiplier = 12;
         if (multiplier <= 10) {
             onClose.run(); // Ha nincs jelentős nyeremény, folytatja az automatikus pörgetést
             return;
@@ -975,7 +958,7 @@ public class SlotMachineGUI extends Application {
                 
                 // Párhuzamos animációk
                 ParallelTransition closeAnimation = new ParallelTransition(fadeOut, scaleDown);
-                closeAnimation.setOnFinished(event -> {
+                closeAnimation.setOnFinished(_ -> {
                     // Zene leállítása és háttérzene helyreállítása az animációk végén
                     mediaPlayer.stop();
                     restoreGameMusic.run();
@@ -1001,7 +984,7 @@ public class SlotMachineGUI extends Application {
             };
 
             // Popup bezárása a zene végén - Timeline használata a MediaPlayer helyett
-            mediaPlayer.setOnEndOfMedia(closePopup::run);
+            mediaPlayer.setOnEndOfMedia(closePopup);
             
             // Backup: Timeline alapú bezárás a zene hossza alapján
             Timeline closeTimer = new Timeline(new KeyFrame(Duration.seconds(duration), _ -> {
@@ -1041,7 +1024,7 @@ public class SlotMachineGUI extends Application {
                 System.out.println("Stop creating coins at: " + stopCreatingCoinsAt + " seconds");
                 coinAnimation.startCoinAnimation(get("GameWidth"), get("GameHeight"), stopCreatingCoinsAt);
             }
-            
+
             // 4. Végül a win felirat réteget adjuk hozzá (legfelül)
             winContent.setAlignment(Pos.CENTER);
             winContent.setPrefSize(get("GameWidth"), get("GameHeight"));
@@ -1662,107 +1645,6 @@ public class SlotMachineGUI extends Application {
         hitSound.play();
     }
 
-    private void updateGridWithNewSymbols(Runnable onComplete) {
-        final int DELAY_BETWEEN_COLUMNS = 100; // milliszekundumban a késleltetés mértéke
-        ParallelTransition columnsSequence = new ParallelTransition(); // Módosítottuk SequentialTransition-ről ParallelTransition-re
-        int[][] updatedGrid = game.getSymbols(); // Frissített rács állapot a játéklogikából
-
-        for (int col = 0; col < GRID_SIZE; col++) {
-            SequentialTransition columnTransition = new SequentialTransition();
-            boolean columnHasAnimations = false;
-
-            // Késleltetés hozzáadása az oszlopok közötti különbséghez
-            PauseTransition columnDelay = new PauseTransition(Duration.millis(DELAY_BETWEEN_COLUMNS * col));
-            columnTransition.getChildren().add(columnDelay);
-
-            for (int row = GRID_SIZE - 1; row >= 0; row--) {
-                if (reels[row][col].getImage() == null) {
-                    // Üres hely esetén szimbólumot keresünk felette
-                    int sourceRow = row - 1;
-                    while (sourceRow >= 0 && reels[sourceRow][col].getImage() == null) {
-                        sourceRow--;
-                    }
-
-                    if (sourceRow >= 0) {
-                        // Szimbólum mozgatása a `sourceRow`-ból a `row`-ba
-                        Image imageToMove = reels[sourceRow][col].getImage();
-                        reels[sourceRow][col].setImage(null); // Töröljük a forrássorból
-
-                        ImageView targetCell = reels[row][col];
-                        targetCell.setImage(imageToMove);
-                        targetCell.setTranslateY(-(row - sourceRow) * get("SymbolSize")); // Kiindulási hely beállítása
-
-                        TranslateTransition fallDown = new TranslateTransition(Duration.millis(30), targetCell);
-                        fallDown.setFromY(-(row - sourceRow) * get("SymbolSize")); // Mozgás kezdeti pontja
-                        fallDown.setToY(get("UpdateMoveDownToY")); // Túllendül a végső helyen
-                        fallDown.setInterpolator(Interpolator.EASE_OUT);
-
-                        for (int i = 0; i < GRID_SIZE; i++) {
-                            for (int j = GRID_SIZE - 1; j >= 0; j--) {
-                                reels[j][i].setOpacity(1.0);
-                            }
-                        }
-                        // Túllendülés után visszarántás a végleges helyre
-                        TranslateTransition moveBack = new TranslateTransition(Duration.millis(30), targetCell);
-                        moveBack.setFromY(get("UpdateMoveBackFromY"));
-                        moveBack.setToY(get("UpdateMoveBackToY"));
-                        moveBack.setInterpolator(Interpolator.EASE_IN);
-
-                        // Az animációk sorba rendezése
-                        SequentialTransition bounceTransition = new SequentialTransition(fallDown, moveBack);
-                        columnTransition.getChildren().add(bounceTransition);
-                    } else {
-                        // Nincs felette szimbólum, új szimbólum beszúrása
-                        int symbolIndex = updatedGrid[row][col];
-                        Image newSymbol = symbols[symbolIndex];
-                        for (int i = 0; i < GRID_SIZE; i++) {
-                            for (int j = GRID_SIZE - 1; j >= 0; j--) {
-                                reels[j][i].setOpacity(1.0);
-                            }
-                        }
-
-                        ImageView targetCell = reels[row][col];
-                        targetCell.setTranslateY(-(row + 1) * get("SymbolSize")); // Kiindulási pont felülről
-                        targetCell.setImage(newSymbol);
-
-                        TranslateTransition fallIn = new TranslateTransition(Duration.millis(30), targetCell);
-                        fallIn.setFromY(-(row + 1) * get("SymbolSize")); // Kezdőpozíció
-                        fallIn.setToY(5); // Túllendül a végleges helyen
-                        fallIn.setInterpolator(Interpolator.EASE_OUT);
-
-                        // Túllendülés után visszarántás a végleges helyre
-                        TranslateTransition settleTransition = new TranslateTransition(Duration.millis(30), targetCell);
-                        settleTransition.setFromY(10);
-                        settleTransition.setToY(0);
-                        settleTransition.setInterpolator(Interpolator.EASE_IN);
-
-                        SequentialTransition bounceTransition = new SequentialTransition(fallIn, settleTransition);
-                        columnTransition.getChildren().add(bounceTransition);
-                    }
-                    columnHasAnimations = true;
-                }
-            }
-
-            if (columnHasAnimations) {
-                int finalCol = col;
-                columnTransition.setOnFinished(_ -> {
-                    fallSounds[finalCol].stop(); // Megállítjuk az esetlegesen még futó hangot
-                    fallSounds[finalCol].setVolume(initialVolume); // Hangerő csökkentése, hogy ne legyen túl hangos
-                    fallSounds[finalCol].seek(Duration.ZERO);
-                    fallSounds[finalCol].play();
-                });
-                columnsSequence.getChildren().add(columnTransition);
-            }
-        }
-
-        if (!columnsSequence.getChildren().isEmpty()) {
-            columnsSequence.setOnFinished(_ -> onComplete.run());
-            columnsSequence.play();
-        } else {
-            // Nincs animáció, futtasd közvetlenül az onComplete-t
-            onComplete.run();
-        }
-    }
     private void createSparkleEffect(Group container, ImageView symbol) {
         // Get symbol position in scene coordinates
         Bounds bounds = symbol.localToScene(symbol.getBoundsInLocal());
@@ -2139,7 +2021,7 @@ public class SlotMachineGUI extends Application {
             // Timer létrehozása 5 másodperces intervallummal
             balancePollingTimer = new Timeline(new KeyFrame(Duration.seconds(5), _ -> {
                 // Csak akkor pollolunk, ha nem pörget a játékos
-                if (!game.isSpinning()) {
+                if (game.isSpinning()) {
                     // Kis késleltetés a spin után, hogy ne írja felül a lokális balance-t
                     PauseTransition delay = new PauseTransition(Duration.seconds(2));
                     delay.setOnFinished(_ -> {

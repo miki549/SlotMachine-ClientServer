@@ -1,6 +1,6 @@
 package com.example.slotmachine.server.service;
 
-import com.example.slotmachine.Pair;
+import com.example.slotmachine.client.Pair;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-import static com.example.slotmachine.GameSettings.*;
+import static com.example.slotmachine.client.GameSettings.*;
 
 /**
  * Szerver-oldali slot machine játékmotor

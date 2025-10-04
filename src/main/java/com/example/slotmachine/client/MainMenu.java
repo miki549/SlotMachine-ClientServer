@@ -1,8 +1,5 @@
-package com.example.slotmachine;
+package com.example.slotmachine.client;
 
-import com.example.slotmachine.client.ServerConfigDialog;
-import com.example.slotmachine.client.LoginDialog;
-import com.example.slotmachine.client.ApiClient;
 import com.example.slotmachine.server.dto.LoginResponse;
 import java.util.prefs.Preferences;
 import javafx.animation.FadeTransition;
@@ -21,17 +18,12 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.Slider;
 import javafx.scene.effect.DropShadow;
-import javafx.scene.image.Image;
 import javafx.scene.input.KeyEvent;
-import javafx.scene.layout.Background;
-import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.media.MediaView;
 import javafx.scene.paint.Color;
@@ -42,9 +34,8 @@ import javafx.stage.StageStyle;
 import javafx.util.Duration;
 import javafx.util.StringConverter;
 
-import java.io.File;
 
-import static com.example.slotmachine.ConfigManager.get;
+import static com.example.slotmachine.client.ConfigManager.get;
 
 public class MainMenu extends Application {
 
@@ -114,7 +105,7 @@ public class MainMenu extends Application {
             }
         }
 
-        if (introVideo != null && loopVideo != null) {
+        if (introVideo != null) {
             // Add error handling for both videos
             introVideo.setOnError(() -> {
                 System.err.println("Hiba az intro video betoltese kor: " + introVideo.getError().toString());
@@ -189,8 +180,7 @@ public class MainMenu extends Application {
                                 BorderPane root = (BorderPane) primaryStage.getScene().getRoot();
                                 if (root.getCenter() != null) {
                                     StackPane centerPane = (StackPane) root.getCenter();
-                                    if (!centerPane.getChildren().isEmpty() && centerPane.getChildren().get(0) instanceof MediaView) {
-                                        MediaView view = (MediaView) centerPane.getChildren().get(0);
+                                    if (!centerPane.getChildren().isEmpty() && centerPane.getChildren().getFirst() instanceof MediaView view) {
                                         view.setMediaPlayer(backgroundVideo);
                                         System.out.println("MediaView sikeresen frissitve");
                                     } else {
@@ -490,7 +480,7 @@ public class MainMenu extends Application {
             settingsStage = null;
         });
         //Escape-re kilépés
-        settingsStage.addEventHandler(KeyEvent.KEY_PRESSED, e -> {
+        settingsStage.addEventHandler(KeyEvent.KEY_PRESSED, _ -> {
             settingsStage.close();
             settingsStage = null;
         });
@@ -531,9 +521,7 @@ public class MainMenu extends Application {
         settingsStage.setScene(settingsScene);
         
         // Add listener to reset flag when dialog is closed
-        settingsStage.setOnHidden(e -> {
-            isSettingsDialogOpen = false;
-        });
+        settingsStage.setOnHidden(_ -> isSettingsDialogOpen = false);
         
         settingsStage.show();
 
@@ -619,8 +607,7 @@ public class MainMenu extends Application {
     
     private String getServerUrlFromPreferences() {
         Preferences prefs = Preferences.userNodeForPackage(ServerConfigDialog.class);
-        String serverUrl = prefs.get("server_url", "http://46.139.211.149:8081");
-        return serverUrl;
+        return prefs.get("server_url", "http://46.139.211.149:8081");
     }
 
     @Override

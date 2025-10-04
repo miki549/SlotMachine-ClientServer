@@ -1,4 +1,4 @@
-package com.example.slotmachine;
+package com.example.slotmachine.client;
 
 import javafx.animation.*;
 import javafx.scene.image.Image;
@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import static com.example.slotmachine.ConfigManager.get;
+import static com.example.slotmachine.client.ConfigManager.get;
 
 /**
  * Pénzérme animáció osztály - repülő és pörgő pénzérmék kezelése
@@ -20,16 +20,16 @@ public class CoinAnimation {
     private static final int COIN_COUNT = 12; // coin1.png - coin12.png
     private static final double TARGET_OFFSET_MAX = 50.0; // Max. pixel eltérés a célponttól (természetesebb szórás)
 
-    private Pane container;
-    private List<ImageView> activeCoins;
-    private List<Timeline> activeSpinTimelines; // Pörgés animációk tárolása
-    private List<PathTransition> activePathTransitions; // Pálya animációk tárolása
-    private Random random;
+    private final Pane container;
+    private final List<ImageView> activeCoins;
+    private final List<Timeline> activeSpinTimelines; // Pörgés animációk tárolása
+    private final List<PathTransition> activePathTransitions; // Pálya animációk tárolása
+    private final Random random;
     private Timeline coinGeneratorTimeline;
     private long animationStartTime;
-    private int coinSize;
-    private int coinGenerationInterval;
-    private int coinsPerGeneration;
+    private final int coinSize;
+    private final int coinGenerationInterval;
+    private final int coinsPerGeneration;
 
     public CoinAnimation(Pane container) {
         this.container = container;
@@ -45,9 +45,6 @@ public class CoinAnimation {
         container.getChildren().clear();
     }
 
-    public void startCoinAnimation(double gameWidth, double gameHeight) {
-        startCoinAnimation(gameWidth, gameHeight, Double.MAX_VALUE);
-    }
 
     /**
      * Elindítja a pénzérme animációt - folyamatos érme generálással
@@ -57,7 +54,7 @@ public class CoinAnimation {
         stopCoinAnimation();
         animationStartTime = System.currentTimeMillis();
 
-        coinGeneratorTimeline = new Timeline(new KeyFrame(Duration.millis(coinGenerationInterval), e -> {
+        coinGeneratorTimeline = new Timeline(new KeyFrame(Duration.millis(coinGenerationInterval), _ -> {
             double elapsedTime = (System.currentTimeMillis() - animationStartTime) / 1000.0;
 
             if (elapsedTime >= stopCreatingCoinsAt - 0.3) {
@@ -175,7 +172,7 @@ public class CoinAnimation {
         // Transition tárolása a leállításhoz
         activePathTransitions.add(pathTransition);
 
-        pathTransition.setOnFinished(e -> removeCoin(coin, pathTransition));
+        pathTransition.setOnFinished(_ -> removeCoin(coin, pathTransition));
         pathTransition.play();
     }
 
@@ -192,7 +189,7 @@ public class CoinAnimation {
         final int[] currentFrame = {1};
 
         spinTimeline.getKeyFrames().add(
-                new KeyFrame(Duration.millis(spinInterval), e -> {
+                new KeyFrame(Duration.millis(spinInterval), _ -> {
                     currentFrame[0] = (currentFrame[0] % COIN_COUNT) + 1;
                     String imagePath = "src/main/resources/pictures/coins/coin" + currentFrame[0] + ".png";
                     coin.setImage(new Image("file:" + imagePath));
@@ -251,12 +248,5 @@ public class CoinAnimation {
         activeCoins.clear();
 
         System.out.println("Coin animation stopped - all timelines and coins cleared");
-    }
-
-    /**
-     * Visszaadja az aktív érmék számát
-     */
-    public int getActiveCoinCount() {
-        return activeCoins.size();
     }
 }

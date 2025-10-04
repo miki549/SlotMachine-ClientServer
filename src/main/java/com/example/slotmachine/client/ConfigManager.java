@@ -1,4 +1,4 @@
-package com.example.slotmachine;
+package com.example.slotmachine.client;
 
 import java.io.FileInputStream;
 import java.io.IOException;

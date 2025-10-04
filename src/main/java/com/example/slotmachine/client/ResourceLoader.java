@@ -1,4 +1,4 @@
-package com.example.slotmachine;
+package com.example.slotmachine.client;
 
 import javafx.scene.image.Image;
 import javafx.scene.media.Media;
@@ -21,13 +21,13 @@ public class ResourceLoader {
         return mediaPlayer;
     }
     public static MediaPlayer loadBackground(String fileName) {
-        return loadBackgroundWithRetry(fileName, 3);
+        return loadBackgroundWithRetry(fileName);
     }
     
-    private static MediaPlayer loadBackgroundWithRetry(String fileName, int maxRetries) {
+    private static MediaPlayer loadBackgroundWithRetry(String fileName) {
         MediaPlayer lastPlayer = null;
         
-        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+        for (int attempt = 1; true; attempt++) {
             try {
                 // Dispose previous player if exists
                 if (lastPlayer != null) {
@@ -47,7 +47,7 @@ public class ResourceLoader {
                 }
                 
                 String mediaUrl = videoFile.toURI().toString();
-                System.out.println("Video betoltese (probalas " + attempt + "/" + maxRetries + "): " + mediaUrl);
+                System.out.println("Video betoltese (probalas " + attempt + "/" + 3 + "): " + mediaUrl);
                 
                 // Create new Media and MediaPlayer objects for each attempt
                 Media videoMedia = new Media(mediaUrl);
@@ -55,20 +55,14 @@ public class ResourceLoader {
                 
                 // Add error handling for media loading
                 int finalAttempt = attempt;
-                player.setOnError(() -> {
-                    System.err.println("Hiba a video betoltese kor (probalas " + finalAttempt + "): " + player.getError().toString());
-                });
+                player.setOnError(() -> System.err.println("Hiba a video betoltese kor (probalas " + finalAttempt + "): " + player.getError().toString()));
                 
                 // Add ready event handler
-                player.setOnReady(() -> {
-                    System.out.println("Video sikeresen betoltve: " + fileName);
-                });
+                player.setOnReady(() -> System.out.println("Video sikeresen betoltve: " + fileName));
                 
                 // Add additional error handling for media creation
                 int finalAttempt1 = attempt;
-                videoMedia.setOnError(() -> {
-                    System.err.println("Hiba a Media objektum letrehozasakor (probalas " + finalAttempt1 + "): " + videoMedia.getError().toString());
-                });
+                videoMedia.setOnError(() -> System.err.println("Hiba a Media objektum letrehozasakor (probalas " + finalAttempt1 + "): " + videoMedia.getError().toString()));
                 
                 // Store reference for potential disposal
                 lastPlayer = player;
@@ -87,7 +81,7 @@ public class ResourceLoader {
                 }
                 
                 // If this is the last attempt, return the player anyway
-                if (attempt == maxRetries) {
+                if (attempt == 3) {
                     return player;
                 }
                 
@@ -101,7 +95,7 @@ public class ResourceLoader {
                 
             } catch (Exception e) {
                 System.err.println("Hiba a hattervideo betoltese kor (probalas " + attempt + "): " + e.getMessage());
-                if (attempt == maxRetries) {
+                if (attempt == 3) {
                     e.printStackTrace();
                     return null;
                 }
@@ -115,6 +109,5 @@ public class ResourceLoader {
                 }
             }
         }
-        return null;
     }
 }

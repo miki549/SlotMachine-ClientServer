@@ -1,7 +1,5 @@
 package com.example.slotmachine.client;
 
-import com.example.slotmachine.ConfigManager;
-import com.example.slotmachine.ResourceLoader;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -9,7 +7,6 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Control;
 import javafx.scene.control.Label;
-import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.layout.StackPane;
@@ -24,18 +21,16 @@ import javafx.util.Duration;
 
 import java.util.prefs.Preferences;
 
-import static com.example.slotmachine.ConfigManager.get;
+import static com.example.slotmachine.client.ConfigManager.get;
 
 public class ServerConfigDialog {
     private static final String SERVER_URL_KEY = "server_url";
     private static final String PC_SERVER_URL = "http://46.139.211.149:8081";
-    private static final String LAPTOP_SERVER_URL = "http://46.139.211.149:8082";
-    
+
     private final Preferences prefs;
     private String serverUrl;
-    private MediaPlayer buttonClickSound;
-    private double volume;
-    
+    private final MediaPlayer buttonClickSound;
+
     // Static variable to track if server config dialog is open
     private static boolean isServerConfigDialogOpen = false;
     
@@ -47,8 +42,7 @@ public class ServerConfigDialog {
         prefs = Preferences.userNodeForPackage(ServerConfigDialog.class);
         // Use saved URL or default to PC server without checking availability
         serverUrl = prefs.get(SERVER_URL_KEY, PC_SERVER_URL);
-        this.volume = volume;
-        
+
         // Initialize button click sound with the provided volume
         buttonClickSound = ResourceLoader.loadSound("buttonclick1.mp3", volume);
     }
@@ -59,10 +53,10 @@ public class ServerConfigDialog {
     }
     
     
-    public String showAndWait(Stage owner) {
+    public void showAndWait(Stage owner) {
         // Check if server config dialog is already open
         if (isServerConfigDialogOpen) {
-            return null;
+            return;
         }
         
         // Set flag to indicate server config dialog is open
@@ -74,13 +68,13 @@ public class ServerConfigDialog {
         dialog.initStyle(StageStyle.TRANSPARENT);
         
         // Make dialog follow parent window movement
-        owner.xProperty().addListener((obs, oldVal, newVal) -> {
+        owner.xProperty().addListener((_, _, _) -> {
             if (dialog.isShowing()) {
                 dialog.setX(owner.getX() + (owner.getWidth() - dialog.getWidth()) / 2);
             }
         });
         
-        owner.yProperty().addListener((obs, oldVal, newVal) -> {
+        owner.yProperty().addListener((_, _, _) -> {
             if (dialog.isShowing()) {
                 dialog.setY(owner.getY() + (owner.getHeight() - dialog.getHeight()) / 2 + 20);
             }
@@ -264,39 +258,22 @@ public class ServerConfigDialog {
         dialog.setScene(scene);
         
         // Position dialog slightly lower than center
-        dialog.setOnShown(e -> {
+        dialog.setOnShown(_ -> {
             dialog.setX(owner.getX() + (owner.getWidth() - dialog.getWidth()) / 2);
             dialog.setY(owner.getY() + (owner.getHeight() - dialog.getHeight()) / 2 + 20); // 50px lower than center
         });
         
         // Add listener to reset flag when dialog is closed
-        dialog.setOnHidden(e -> {
-            isServerConfigDialogOpen = false;
-        });
+        dialog.setOnHidden(_ -> isServerConfigDialogOpen = false);
         
         dialog.showAndWait();
-        
-        return serverUrl;
+
     }
     
     public String getServerUrl() {
         return prefs.get(SERVER_URL_KEY, PC_SERVER_URL);
     }
-    
-    public void saveServerUrl(String url) {
-        prefs.put(SERVER_URL_KEY, url);
-    }
-    
-    /**
-     * Update the volume for button click sounds
-     */
-    public void setVolume(double volume) {
-        this.volume = volume;
-        if (buttonClickSound != null) {
-            buttonClickSound.setVolume(volume);
-        }
-    }
-    
+
     /**
      * Helper method to add sound to widgets
      */

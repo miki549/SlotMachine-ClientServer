@@ -1,7 +1,6 @@
-package com.example.slotmachine;
+package com.example.slotmachine.client;
 
 public class GameSettings {
-    public static final int DEFAULT_BALANCE = 0;
     public static final int DEFAULT_BET = 600;
     public static final int SYMBOL_COUNT = 9;
     public static final int CLUSTER_SIZE = 5;
